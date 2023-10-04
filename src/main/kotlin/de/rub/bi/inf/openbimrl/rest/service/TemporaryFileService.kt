@@ -1,21 +1,35 @@
 package de.rub.bi.inf.openbimrl.rest.service
 
 import org.springframework.stereotype.Service
-import java.io.File
+import org.springframework.web.multipart.MultipartFile
+import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.UUID
+import java.util.*
 import kotlin.io.path.createTempDirectory
-
+import kotlin.io.path.listDirectoryEntries
 
 
 @Service
 class TemporaryFileService {
     private final val tempDir: Path = createTempDirectory();
+    final val files: List<Path>
+        get() = tempDir.listDirectoryEntries()
 
-    fun saveToFile(s: String): File {
-        val file = tempDir.resolve(UUID.randomUUID().toString()).toFile()
+    fun filesWithGlob(glob: String): List<Path> {
+        return tempDir.listDirectoryEntries(glob)
+    }
+
+    fun saveToFile(s: String, fileSuffix: String): UUID {
+        val id = UUID.randomUUID()
+        val file = tempDir.resolve("${id}.${fileSuffix}").toFile()
         file.writeText(s)
-        return file
+        return id
+    }
+
+    fun saveToFile(f: MultipartFile): UUID {
+        val id = UUID.randomUUID()
+        val path = tempDir.resolve("${id}.${f.name.substringAfterLast('.', "")}")
+        Files.copy(f.inputStream, path)
+        return id
     }
 }
