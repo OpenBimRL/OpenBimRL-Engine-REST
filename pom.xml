@@ -6,9 +6,9 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.1.4</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>de.rub.bi.inf.openbimrl</groupId>
+	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>OpenBimRL-Engine-REST</name>
