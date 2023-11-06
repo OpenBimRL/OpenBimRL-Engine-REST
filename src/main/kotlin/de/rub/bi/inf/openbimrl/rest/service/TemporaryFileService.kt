@@ -25,11 +25,4 @@ class TemporaryFileService {
         file.writeText(s)
         return id
     }
-
-    fun saveToFile(f: MultipartFile): UUID {
-        val id = UUID.randomUUID()
-        val path = tempDir.resolve("${id}.${f.name.substringAfterLast('.', "")}")
-        Files.copy(f.inputStream, path)
-        return id
-    }
 }
