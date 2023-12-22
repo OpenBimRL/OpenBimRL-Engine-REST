@@ -32,4 +32,9 @@ class ApiController @Autowired constructor(private val fileService: TemporaryFil
         val content = Files.readAllLines(files[0], Charsets.UTF_8).reduce { acc, string -> acc + string }
         return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(content))
     }
+
+    @GetMapping("/connection")
+    fun isConnected(): ApiAnswer<Boolean> {
+        return ApiAnswer(true)
+    }
 }
