@@ -19,10 +19,14 @@ class TemporaryFileService {
         return tempDir.listDirectoryEntries(glob)
     }
 
-    fun saveToFile(s: String, fileSuffix: String): UUID {
+    fun saveToFile(s: String, fileSuffix: String, metadata: Map<String, String>? = null): UUID {
         val id = UUID.randomUUID()
         val file = tempDir.resolve("${id}.${fileSuffix}").toFile()
         file.writeText(s)
+        val filePath = file.toPath()
+        metadata?.forEach { (k, v) ->
+            Files.setAttribute(filePath, "user:$k", v)
+        }
         return id
     }
 }
