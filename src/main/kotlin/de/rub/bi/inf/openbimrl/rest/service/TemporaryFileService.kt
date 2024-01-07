@@ -25,8 +25,12 @@ class TemporaryFileService {
         file.writeText(s)
         val filePath = file.toPath()
         metadata?.forEach { (k, v) ->
-            Files.setAttribute(filePath, "user:$k", v)
+            Files.setAttribute(filePath, "user:$k", v.toByteArray())
         }
         return id
+    }
+
+    fun getFileMetadata(path: Path, attributeName: String): Any {
+        return Files.getAttribute(path, "user:$attributeName")
     }
 }
