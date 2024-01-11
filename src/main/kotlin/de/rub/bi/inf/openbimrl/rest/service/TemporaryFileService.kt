@@ -1,7 +1,6 @@
 package de.rub.bi.inf.openbimrl.rest.service
 
 import org.springframework.stereotype.Service
-import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
