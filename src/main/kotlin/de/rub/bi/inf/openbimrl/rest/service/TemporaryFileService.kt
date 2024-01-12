@@ -29,7 +29,7 @@ class TemporaryFileService {
         return id
     }
 
-    fun getFileMetadata(path: Path, attributeName: String): Any {
-        return Files.getAttribute(path, "user:$attributeName")
+    final inline fun <reified T> getFileMetadata(path: Path, attributeName: String): T {
+        return Files.getAttribute(path, "user:$attributeName") as T
     }
 }
