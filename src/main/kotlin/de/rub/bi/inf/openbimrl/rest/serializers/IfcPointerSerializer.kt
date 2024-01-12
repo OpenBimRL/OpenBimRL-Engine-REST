@@ -6,10 +6,6 @@ import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import de.rub.bi.inf.nativelib.IfcPointer
 import java.io.IOException
-import java.math.BigDecimal
-
-
-
 
 class IfcPointerSerializer @JvmOverloads constructor(t: Class<IfcPointer>? = null) :
     StdSerializer<IfcPointer>(t) {
