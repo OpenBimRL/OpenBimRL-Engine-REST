@@ -15,7 +15,7 @@ import java.util.*
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
 
-@CrossOrigin(origins = ["https://ide.florianbecker.eu"])
+@CrossOrigin(origins = ["https://ide.florianbecker.eu", "http://localhost:8000"])
 @RestController
 class ApiController @Autowired constructor(
     private val fileService: TemporaryFileService,
