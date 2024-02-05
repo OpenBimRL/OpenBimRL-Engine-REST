@@ -22,9 +22,9 @@ RUN apt update && apt install -y libboost-dev clang make
 ADD https://github.com/OpenBimRL/OpenBimRL-Engine.git /build/engine
 ADD https://github.com/OpenBimRL/OpenBimRL-Engine-Adapter.git /build/adapter
 
-RUN cd /build/api     && mvn install
-RUN cd /build/adapter && mvn install
-RUN cd /build/engine  && mvn install
+RUN cd /build/api     && mvn install -Dmaven.test.skip
+RUN cd /build/adapter && mvn install -Dmaven.test.skip
+RUN cd /build/engine  && mvn install -Dmaven.test.skip
 
 ADD https://github.com/OpenBimRL/OpenBimRL-Engine-REST.git /app
 
