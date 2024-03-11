@@ -22,7 +22,7 @@ class RuleCheckingService {
 
         // execute all rules
         for (ruleDef in RuleBase.getInstance().rules) {
-            ruleDef.check(null, logger)
+            ruleDef.check(logger)
         }
 
         return logger.getLogs()
