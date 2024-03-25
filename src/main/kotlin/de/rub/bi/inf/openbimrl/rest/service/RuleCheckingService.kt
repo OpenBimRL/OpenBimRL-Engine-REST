@@ -25,6 +25,8 @@ class RuleCheckingService {
             ruleDef.check(logger)
         }
 
+        RuleBase.getInstance().resetAllRules()
+
         return logger.getLogs()
     }
 
