@@ -17,8 +17,6 @@ COPY --from=binaries /usr/lib/libIfcParse.a /usr/local/lib/libIfcParse.a
 
 COPY --from=git-fetcher /app /build/api
 
-RUN apt update && apt install -y libboost-dev clang make
-
 RUN cd /build/api     && mvn install -Dmaven.test.skip
 
 WORKDIR /app
@@ -29,8 +27,11 @@ RUN /bin/bash -c "mv maven-settings.xml ~/.m2/settings.xml"
 
 RUN rm -rf /build
 
-ENV USER_NAME=GITHUB_ACTOR
-ENV ACCESS_TOKEN=GITHUB_ACCESS_TOKEN
+ARG GITHUB_ACCESS_TOKEN
+ARG GITHUB_ACTOR
+
+ENV USER_NAME=$GITHUB_ACTOR
+ENV ACCESS_TOKEN=$GITHUB_ACCESS_TOKEN
 
 RUN mvn install
 CMD ["mvn", "spring-boot:run"]
