@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
-	<version>0.2-alpha</version>
+	<version>0.3-alpha-RC</version>
 	<name>OpenBimRL-Engine-REST</name>
 	<description>OpenBimRL-Engine-REST</description>
 	<properties>
@@ -58,9 +58,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>inf.bi.rub.de</groupId>
-			<artifactId>OpenBimRL-Engine</artifactId>
-			<version>2022.11.1-SNAPSHOT-0.1</version>
+  			<groupId>inf.bi.rub.de</groupId>
+  			<artifactId>openbimrl-engine</artifactId>
+  			<version>2024.1.1-SNAPSHOT-0.4</version>
 		</dependency>
 
 		<dependency>

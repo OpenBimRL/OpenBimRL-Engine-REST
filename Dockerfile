@@ -19,17 +19,17 @@ COPY --from=git-fetcher /app /build/api
 
 RUN apt update && apt install -y libboost-dev clang make
 
-ADD https://github.com/OpenBimRL/OpenBimRL-Engine.git /build/engine
-
 RUN cd /build/api     && mvn install -Dmaven.test.skip
-RUN cd /build/engine  && mvn install -Dmaven.test.skip
 
 WORKDIR /app
 
 COPY . .
 
-RUN cp /build/engine/src/main/resources/lib.so ./src/main/resources
 RUN rm -rf /build
+
+
+ENV USER_NAME=GITHUB_ACTOR
+ENV ACCESS_TOKEN=GITHUB_ACCESS_TOKEN
 
 RUN mvn install
 CMD ["mvn", "spring-boot:run"]

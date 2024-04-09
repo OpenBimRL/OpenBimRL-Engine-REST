@@ -8,10 +8,17 @@ on:
         branches:
             - main
             - master
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
     docker_publish:
         runs-on: "ubuntu-20.04"
+
+        permissions:
+            contents: read
+            packages: write
 
         steps:
             - uses: actions/checkout@v4
@@ -20,25 +27,27 @@ jobs:
               id: maven_version
               run: echo "::set-output name=PACKAGE_VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
 
-            # https://github.com/marketplace/actions/push-to-ghcr
-            - name: Build and publish a Docker image for ${{ github.repository }}
-              uses: macbre/push-to-ghcr@master
+            - name: Log in to the Container registry
+              uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
               with:
-                  image_name: ${{ github.repository }}  # it will be lowercased internally
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  # optionally push to the Docker Hub (docker.io)
-                  # docker_io_token: ${{ secrets.DOCKER_IO_ACCESS_TOKEN }}  # see https://hub.docker.com/settings/security
-                  # customize the username to be used when pushing to the Docker Hub
-                  # docker_io_user: foobar  # see https://github.com/macbre/push-to-ghcr/issues/14
-                  image_tag: ${{ steps.maven_version.outputs.PACKAGE_VERSION }}
+                registry: ${{ env.REGISTRY }}
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+            
+            - name: Extract metadata (tags, labels) for Docker
+              d: meta
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-            # https://github.com/marketplace/actions/push-to-ghcr
-            - name: Build and publish a Docker image for ${{ github.repository }} for latest
-              uses: macbre/push-to-ghcr@master
+            - name: Build and push Docker image
+              uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
               with:
-                  image_name: ${{ github.repository }}  # it will be lowercased internally
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  # optionally push to the Docker Hub (docker.io)
-                  # docker_io_token: ${{ secrets.DOCKER_IO_ACCESS_TOKEN }}  # see https://hub.docker.com/settings/security
-                  # customize the username to be used when pushing to the Docker Hub
-                  # docker_io_user: foobar  # see https://github.com/macbre/push-to-ghcr/issues/14
+                context: .
+                push: true
+                tags: |
+                    ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.maven_version.outputs.PACKAGE_VERSION }}
+                    ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+                build-args: |
+                    GITHUB_ACTOR=${{ github.actor }}
+                    GITHUB_ACCESS_TOKEN=${{ secrets.GITHUB_TOKEN }}
