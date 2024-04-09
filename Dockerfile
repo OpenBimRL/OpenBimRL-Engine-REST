@@ -25,8 +25,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN rm -rf /build
+RUN /bin/bash -c "mv maven-settings.xml ~/.m2/settings.xml"
 
+RUN rm -rf /build
 
 ENV USER_NAME=GITHUB_ACTOR
 ENV ACCESS_TOKEN=GITHUB_ACCESS_TOKEN
