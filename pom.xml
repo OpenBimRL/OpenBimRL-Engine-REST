@@ -5,16 +5,16 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.1.4</version>
+		<version>3.2.4</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
-	<version>0.3-alpha-rc</version>
+	<version>0.3-alpha</version>
 	<name>OpenBimRL-Engine-REST</name>
 	<description>OpenBimRL-Engine-REST</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>20</java.version>
 		<kotlin.version>1.9.10</kotlin.version>
 	</properties>
 	<dependencies>
@@ -60,7 +60,7 @@
 		<dependency>
   			<groupId>inf.bi.rub.de</groupId>
   			<artifactId>openbimrl-engine</artifactId>
-  			<version>2024.1.1-SNAPSHOT-0.4</version>
+  			<version>2024.1.1-SNAPSHOT-0.5.2</version>
 		</dependency>
 
 		<dependency>

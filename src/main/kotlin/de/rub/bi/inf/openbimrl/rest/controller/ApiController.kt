@@ -3,6 +3,7 @@ package de.rub.bi.inf.openbimrl.rest.controller
 import de.rub.bi.inf.logger.RuleLogger
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
+import de.rub.bi.inf.openbimrl.rest.models.CheckResult
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import org.apache.commons.io.IOUtils
@@ -87,14 +88,14 @@ class ApiController @Autowired constructor(
     fun check(
         @RequestParam graphIDs: List<UUID>,
         @PathVariable modelUUID: UUID
-    ): ResponseEntity<ApiAnswer<Map<String, RuleLogger.Node>?>> {
+    ): ResponseEntity<ApiAnswer<CheckResult?>> {
 
         // look for requested model file
         val modelFile = fileService.filesWithGlob("${modelUUID}.ifc")
         if (modelFile.isEmpty())
             return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ApiAnswer(HashMap(0), "Model Not Found"))
+                .body(ApiAnswer(null, "Model Not Found"))
 
         // maybe using glob filter instead of filtering might be faster...
         val graphFiles = fileService.filesWithGlob("*.openbimrl").filter {
