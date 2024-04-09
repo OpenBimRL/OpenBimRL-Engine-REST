@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
-	<version>0.3-alpha-RC</version>
+	<version>0.3-alpha-rc</version>
 	<name>OpenBimRL-Engine-REST</name>
 	<description>OpenBimRL-Engine-REST</description>
 	<properties>

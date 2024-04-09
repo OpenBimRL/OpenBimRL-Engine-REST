@@ -10,7 +10,6 @@ on:
             - master
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
     docker_publish:
@@ -26,6 +25,10 @@ jobs:
             - name: Read Maven package version
               id: maven_version
               run: echo "::set-output name=PACKAGE_VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
+            
+            - name: downcase REPO
+              run: |
+                echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
             - name: Log in to the Container registry
               uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -38,7 +41,7 @@ jobs:
               id: meta
               uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
               with:
-                images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+                images: ${{ env.REGISTRY }}/${{ env.REPO }}
 
             - name: Build and push Docker image
               uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
@@ -46,8 +49,8 @@ jobs:
                 context: .
                 push: true
                 tags: |
-                    ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.maven_version.outputs.PACKAGE_VERSION }}
-                    ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+                    ${{ env.REGISTRY }}/${{ env.REPO }}:${{ steps.maven_version.outputs.PACKAGE_VERSION }}
+                    ${{ env.REGISTRY }}/${{ env.REPO }}:latest
                 build-args: |
                     GITHUB_ACTOR=${{ github.actor }}
                     GITHUB_ACCESS_TOKEN=${{ secrets.GITHUB_TOKEN }}
