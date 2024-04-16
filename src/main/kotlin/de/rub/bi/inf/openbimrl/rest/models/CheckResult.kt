@@ -5,5 +5,6 @@ import de.rub.bi.inf.model.ResultObjectGroup
 
 data class CheckResult (
     val nodes: Map<String, RuleLogger.Node>,
-    val results: Map<String, Any?>
+    val results: Map<String, Any?>,
+    val checks: String
 )

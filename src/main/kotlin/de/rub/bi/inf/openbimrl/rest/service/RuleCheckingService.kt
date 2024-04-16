@@ -17,19 +17,21 @@ class RuleCheckingService {
     }
 
     fun check(ifcFile: File, graphFiles: List<File>): CheckResult {
-        if (!lib.initIfc(ifcFile.toString())) return CheckResult(emptyMap(), emptyMap())
+        if (!lib.initIfc(ifcFile.toString())) return CheckResult(emptyMap(), emptyMap(), String())
 
         OpenBimRLReader(graphFiles)
         val logger = RuleLogger()
+        val builder = StringBuilder()
 
         // execute all rules
         for (ruleDef in RuleBase.getInstance().rules) {
             ruleDef.check(logger)
+            builder.append(ruleDef.checkingProtocol)
         }
 
         RuleBase.getInstance().resetAllRules()
 
-        return CheckResult(logger.getLogs(), logger.getResults())
+        return CheckResult(logger.getLogs(), logger.getResults(), builder.toString())
     }
 
 }
