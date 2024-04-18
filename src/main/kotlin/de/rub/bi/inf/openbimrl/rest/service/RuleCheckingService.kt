@@ -26,7 +26,7 @@ class RuleCheckingService {
         // execute all rules
         for (ruleDef in RuleBase.getInstance().rules) {
             ruleDef.check(logger)
-            builder.append(ruleDef.checkingProtocol)
+            builder.append(ruleDef.checkedStatus)
         }
 
         RuleBase.getInstance().resetAllRules()
