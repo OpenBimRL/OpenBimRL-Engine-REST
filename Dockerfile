@@ -1,5 +1,4 @@
-# syntax=docker/dockerfile:1
-FROM ghcr.io/openbimrl/openbimrl-engine:latest
+FROM ghcr.io/openbimrl/openbimrl-engine:2024.04.28
 
 RUN rm -rf /app
 WORKDIR /app
