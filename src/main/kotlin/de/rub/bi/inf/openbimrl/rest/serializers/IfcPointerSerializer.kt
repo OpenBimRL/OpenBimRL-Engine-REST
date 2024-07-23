@@ -14,7 +14,10 @@ class IfcPointerSerializer @JvmOverloads constructor(t: Class<IfcPointer>? = nul
         value: IfcPointer, jgen: JsonGenerator, provider: SerializerProvider
     ) {
         jgen.writeStartObject()
-        jgen.writeStringField("ifcObject", value.toString())
+        jgen.writeStringField("type", value.type)
+        jgen.writeStringField("guid", value.guid)
+        jgen.writeObjectField("properties", value.properties)
+        jgen.writeObjectField("quantities", value.quantities)
         jgen.writeEndObject()
     }
     override fun handledType(): Class<IfcPointer> {
