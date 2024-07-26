@@ -1,7 +1,6 @@
 package de.rub.bi.inf.openbimrl.rest.serializers
 
 import arrow.core.Either
-import arrow.core.right
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.SerializerProvider
@@ -14,7 +13,7 @@ class EitherSerializer @JvmOverloads constructor(t: Class<Either<*, *>>? = null)
     override fun serialize(
         value: Either<*, *>, jgen: JsonGenerator, provider: SerializerProvider
     ) {
-        when(val containedValue: Any? = value.leftOrNull() ?: value.right()) {
+        when(val containedValue: Any? = value.leftOrNull() ?: value.getOrNull()) {
             is String -> jgen.writeString(containedValue)
             is Int -> jgen.writeNumber(containedValue)
             is Long -> jgen.writeNumber(containedValue)

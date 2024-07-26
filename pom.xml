@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
-	<version>0.5.0-alpha</version>
+	<version>0.5.1-alpha</version>
 	<name>OpenBimRL-Engine-REST</name>
 	<description>OpenBimRL-Engine-REST</description>
 	<properties>
@@ -57,10 +57,17 @@
 			<version>${kotlin.version}</version>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/com.github.ajalt.colormath/colormath-jvm -->
+		<dependency>
+			<groupId>com.github.ajalt.colormath</groupId>
+			<artifactId>colormath-jvm</artifactId>
+			<version>3.6.0</version>
+		</dependency>
+
 		<dependency>
   			<groupId>inf.bi.rub.de</groupId>
   			<artifactId>openbimrl-engine</artifactId>
-  			<version>2024.07.23</version>
+  			<version>2024.07.26</version>
 		</dependency>
 
 		<dependency>
