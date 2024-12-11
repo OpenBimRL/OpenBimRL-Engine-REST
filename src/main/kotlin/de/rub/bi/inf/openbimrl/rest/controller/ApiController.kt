@@ -1,11 +1,11 @@
 package de.rub.bi.inf.openbimrl.rest.controller
 
-import de.rub.bi.inf.logger.RuleLogger
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
+import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
 import org.apache.commons.io.IOUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -54,8 +54,7 @@ class ApiController @Autowired constructor(
     // TODO: fix duplication
     @PostMapping("/graph", consumes = ["multipart/form-data"], produces = ["application/json"])
     fun addGraph(
-        @RequestParam("file") file: String,
-        @RequestParam("name", required = false) name: String?
+        @RequestParam("file") file: String, @RequestParam("name", required = false) name: String?
     ): ApiAnswer<UUID> {
         // key, value pair for custom file metadata
         val metadata = HashMap<String, String>()
@@ -79,44 +78,37 @@ class ApiController @Autowired constructor(
 
         val file = files[0] // can't fail cause previous empty check
 
-        return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(functions.initIfc(file.toString()))
+        return ResponseEntity.status(HttpStatus.OK).body(functions.initIfc(file.toString()))
     }
 
     @GetMapping("/check/{modelUUID}", produces = ["application/json"])
     fun check(
-        @RequestParam graphIDs: List<UUID>,
-        @PathVariable modelUUID: UUID
+        @RequestParam graphIDs: List<UUID>, @PathVariable modelUUID: UUID
     ): ResponseEntity<ApiAnswer<CheckResult?>> {
 
         // look for requested model file
         val modelFile = fileService.filesWithGlob("${modelUUID}.ifc")
-        if (modelFile.isEmpty())
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(ApiAnswer(null, "Model Not Found"))
+        if (modelFile.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiAnswer(null, "Model Not Found"))
 
         // maybe using glob filter instead of filtering might be faster...
         val graphFiles = fileService.filesWithGlob("*.openbimrl").filter {
             // this has O(n^2) complexity. Not ideal...
-            for (item in graphIDs)
-                if (it.nameWithoutExtension.split('.')[0] == item.toString())
-                    return@filter true
+            for (item in graphIDs) if (it.nameWithoutExtension.split('.')[0] == item.toString()) return@filter true
             // that's wyld syntax
             return@filter false
         }.map { it.toFile() } // convert from Path to File
 
-        // check ruleset
-        val ruleCheckingResult = ruleCheckerService.check(
-            modelFile[0].toFile(),
-            graphFiles
-        )
-
-        // return answer
-        return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(ApiAnswer(ruleCheckingResult))
+        //
+        try {
+            val ruleCheckingResult = ruleCheckerService.check(
+                modelFile[0].toFile(), graphFiles
+            )
+            // return answer
+            return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(ruleCheckingResult))
+        } catch (e: InvalidFunctionInputException) {
+            return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(null, "Error: " + e.stackTraceToString()))
+        }
     }
 
     /**
@@ -127,10 +119,7 @@ class ApiController @Autowired constructor(
         // load file with UUID
         val files = fileService.filesWithGlob("${uuid}.ifc")
         // check if the file exists
-        if (files.isEmpty())
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(null)
+        if (files.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
 
         val fileUri = files[0].toUri() // can't fail cause previous empty check
         val fileContents = IOUtils.toByteArray(fileUri) // convert file to ByteArray
