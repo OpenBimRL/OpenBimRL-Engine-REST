@@ -20,7 +20,8 @@ import kotlin.io.path.nameWithoutExtension
 @RestController
 class ApiController @Autowired constructor(
     private val fileService: TemporaryFileService,
-    private val ruleCheckerService: RuleCheckingService
+    private val ruleCheckerService: RuleCheckingService,
+    private val availableFunctionService: AvailableFunctionService
 ) {
 
     @GetMapping("/models", produces = ["application/json"])
