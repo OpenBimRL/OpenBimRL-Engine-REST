@@ -4,6 +4,7 @@ import de.rub.bi.inf.logger.RuleLogger
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
+import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import org.apache.commons.io.IOUtils
