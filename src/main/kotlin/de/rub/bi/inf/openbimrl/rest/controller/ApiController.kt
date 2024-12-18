@@ -3,6 +3,7 @@ package de.rub.bi.inf.openbimrl.rest.controller
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
+import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
@@ -20,7 +21,8 @@ import kotlin.io.path.nameWithoutExtension
 @RestController
 class ApiController @Autowired constructor(
     private val fileService: TemporaryFileService,
-    private val ruleCheckerService: RuleCheckingService
+    private val ruleCheckerService: RuleCheckingService,
+    private val availableFunctionService: AvailableFunctionService
 ) {
 
     @GetMapping("/models", produces = ["application/json"])
@@ -125,9 +127,12 @@ class ApiController @Autowired constructor(
         val fileContents = IOUtils.toByteArray(fileUri) // convert file to ByteArray
 
         // return answer
-        return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(fileContents)
+        return ResponseEntity.status(HttpStatus.OK).body(fileContents)
+    }
+
+    @GetMapping("/functions", produces = ["application/json"])
+    fun getFunctions(): ApiAnswer<Array<AvailableFunctionService.Group>> {
+        return ApiAnswer(availableFunctionService.getRegisteredFunctions())
     }
 
     /**
