@@ -40,7 +40,7 @@ class AvailableFunctionService {
 
         registeredFunctions.forEach { (key, value) ->
             val annotation = value.getAnnotation(OpenBIMRLFunction::class.java)
-            val functions = findFunctionFields(value)
+            val functionFields = findFunctionFields(value)
             val groupName = key.split('.')[0]
             if (!groups.contains(groupName))
                 groups[groupName] = mutableListOf()
@@ -51,20 +51,22 @@ class AvailableFunctionService {
                         "exclamation-circle-fill",
                         "Example Text Here",
                         "Example Text Here",
-                        functions.inputs.map {
+                        inputs = functionFields.inputs.map {
+                            val inputAnnotation = it.getAnnotation(FunctionInput::class.java)
                             FunctionHandle(
-                                it.name,
+                                inputAnnotation.position.toString(),
                                 if (Collection::class.java.isAssignableFrom(it.type))
-                                    it.getAnnotation(FunctionInput::class.java).collectionType.simpleName!!
+                                    inputAnnotation.collectionType.simpleName!!
                                 else
                                     it.type.simpleName
                             )
                         }.toTypedArray(),
-                        functions.outputs.map {
+                        outputs = functionFields.outputs.map {
+                            val outputAnnotation = it.getAnnotation(FunctionOutput::class.java)
                             FunctionHandle(
-                                it.name,
+                                outputAnnotation.position.toString(),
                                 if (Collection::class.java.isAssignableFrom(it.type))
-                                    it.getAnnotation(FunctionOutput::class.java).collectionType.simpleName!!
+                                    outputAnnotation.collectionType.simpleName!!
                                 else
                                     it.type.simpleName
                             )
