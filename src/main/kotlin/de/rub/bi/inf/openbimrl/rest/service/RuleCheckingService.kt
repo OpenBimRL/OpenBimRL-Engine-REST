@@ -1,11 +1,10 @@
 package de.rub.bi.inf.openbimrl.rest.service
 
 import de.rub.bi.inf.logger.RuleLogger
-import de.rub.bi.inf.model.ResultObjectGroup
 import de.rub.bi.inf.model.RuleBase
 import de.rub.bi.inf.nativelib.FunctionsNative
-import de.rub.bi.inf.openbimrl.helper.OpenBimRLReader
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
+import de.rub.bi.inf.openbimrl.utils.OpenBimRLReader
 import org.springframework.stereotype.Service
 import java.io.File
 
