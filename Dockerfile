@@ -1,4 +1,4 @@
-FROM ghcr.io/openbimrl/openbimrl-engine:2024.11.03
+FROM ghcr.io/openbimrl/openbimrl-engine:2024.12.19
 
 RUN rm -rf /app
 WORKDIR /app
