@@ -3,12 +3,14 @@ package de.rub.bi.inf.openbimrl.rest.controller
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
+import de.rub.bi.inf.openbimrl.rest.models.StatusResponse
 import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
 import org.apache.commons.io.IOUtils
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -22,8 +24,19 @@ import kotlin.io.path.nameWithoutExtension
 class ApiController @Autowired constructor(
     private val fileService: TemporaryFileService,
     private val ruleCheckerService: RuleCheckingService,
-    private val availableFunctionService: AvailableFunctionService
+    private val availableFunctionService: AvailableFunctionService,
+    @Value("\${app.version:dev}") private val appVersionValue: String
 ) {
+    private fun env(name: String): String? = System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+    private fun isGpuOffloadEnabled(): Boolean {
+        val value = env("OPENBIMRL_ENABLE_ROCM_OFFLOAD")?.lowercase() ?: return false
+        return value == "on" || value == "true" || value == "1" || value == "yes"
+    }
+
+    private fun appVersion(): String {
+        return appVersionValue.ifBlank { "dev" }
+    }
 
     @GetMapping("/models", produces = ["application/json"])
     fun listModels(): ApiAnswer<Map<UUID, String>> {
@@ -142,5 +155,16 @@ class ApiController @Autowired constructor(
     fun isConnected(): ApiAnswer<Boolean> {
         // if you made it this far, here is a gift for you: 🎁
         return ApiAnswer(true)
+    }
+
+    @GetMapping("/status", produces = ["application/json"])
+    fun status(): ApiAnswer<StatusResponse> {
+        return ApiAnswer(
+            StatusResponse(
+                version = appVersion(),
+                gpuOffloadEnabled = isGpuOffloadEnabled(),
+                gpuOffloadArch = env("OPENBIMRL_ROCM_OFFLOAD_ARCH")
+            )
+        )
     }
 }

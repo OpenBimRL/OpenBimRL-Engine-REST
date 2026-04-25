@@ -83,7 +83,7 @@
 		<dependency>
   			<groupId>inf.bi.rub.de</groupId>
   			<artifactId>openbimrl-engine</artifactId>
-  			<version>2024.12.19</version>
+  			<version>2025.04.15</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-devtools -->
@@ -110,6 +110,12 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
 		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
 		<plugins>
