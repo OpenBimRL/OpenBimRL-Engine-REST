@@ -49,7 +49,7 @@ class AvailableFunctionService {
                     UUID.randomUUID(), annotation.type, FunctionData(
                         key,
                         "exclamation-circle-fill",
-                        "Example Text Here",
+                        annotation.description.ifBlank { key },
                         "Example Text Here",
                         inputs = functionFields.inputs.map {
                             val inputAnnotation = it.getAnnotation(FunctionInput::class.java)
