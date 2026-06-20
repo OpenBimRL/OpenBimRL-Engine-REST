@@ -24,13 +24,20 @@ class RuleCheckingService {
 
         // execute all rules
         for (ruleDef in RuleBase.getInstance().rules) {
-            ruleDef.check(logger)
+            invokeRuleCheck(ruleDef, logger)
             builder.append(ruleDef.checkedStatus)
         }
 
         RuleBase.getInstance().resetAllRules()
 
         return CheckResult(logger.getLogs(), logger.getResults(), builder.toString(), logger.getGraphicalOutputs())
+    }
+
+    private fun invokeRuleCheck(ruleDef: Any, logger: RuleLogger) {
+        val checkMethod = ruleDef.javaClass.methods.firstOrNull { method ->
+            method.name == "check" && method.parameterCount == 1
+        } ?: throw IllegalStateException("No check(logger) method found on ${ruleDef.javaClass.name}")
+        checkMethod.invoke(ruleDef, logger)
     }
 
 }
