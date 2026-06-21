@@ -1,10 +1,8 @@
 package de.rub.bi.inf.openbimrl.rest.service
 
 import de.rub.bi.inf.openbimrl.functions.FunctionFactory
-import de.rub.bi.inf.openbimrl.functions.annotations.FunctionInput
-import de.rub.bi.inf.openbimrl.functions.annotations.FunctionOutput
 import de.rub.bi.inf.openbimrl.functions.annotations.OpenBIMRLFunction
-import de.rub.bi.inf.openbimrl.functions.annotations.findFunctionFields
+import de.rub.bi.inf.openbimrl.functions.annotations.findFunctionPortDefinitions
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -40,7 +38,7 @@ class AvailableFunctionService {
 
         registeredFunctions.forEach { (key, value) ->
             val annotation = value.getAnnotation(OpenBIMRLFunction::class.java)
-            val functionFields = findFunctionFields(value)
+            val functionPorts = findFunctionPortDefinitions(value)
             val groupName = key.split('.')[0]
             if (!groups.contains(groupName))
                 groups[groupName] = mutableListOf()
@@ -51,24 +49,16 @@ class AvailableFunctionService {
                         "exclamation-circle-fill",
                         annotation.description.ifBlank { key },
                         "Example Text Here",
-                        inputs = functionFields.inputs.map {
-                            val inputAnnotation = it.getAnnotation(FunctionInput::class.java)
+                        inputs = functionPorts.inputs.map {
                             FunctionHandle(
-                                inputAnnotation.position.toString(),
-                                if (Collection::class.java.isAssignableFrom(it.type))
-                                    inputAnnotation.collectionType.simpleName!!
-                                else
-                                    it.type.simpleName
+                                it.position.toString(),
+                                it.displayName,
                             )
                         }.toTypedArray(),
-                        outputs = functionFields.outputs.map {
-                            val outputAnnotation = it.getAnnotation(FunctionOutput::class.java)
+                        outputs = functionPorts.outputs.map {
                             FunctionHandle(
-                                outputAnnotation.position.toString(),
-                                if (Collection::class.java.isAssignableFrom(it.type))
-                                    outputAnnotation.collectionType.simpleName!!
-                                else
-                                    it.type.simpleName
+                                it.position.toString(),
+                                it.displayName,
                             )
                         }.toTypedArray(),
                     )
