@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>inf.bi.rub.de</groupId>
 	<artifactId>OpenBimRL-Engine-REST</artifactId>
-	<version>0.5.3-alpha</version>
+	<version>0.5.4-alpha</version>
 	<name>OpenBimRL-Engine-REST</name>
 	<description>OpenBimRL-Engine-REST</description>
 	<properties>
@@ -83,7 +83,7 @@
 		<dependency>
   			<groupId>inf.bi.rub.de</groupId>
   			<artifactId>openbimrl-engine</artifactId>
-  			<version>2025.04.15</version>
+  			<version>2026.06.22</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-devtools -->
