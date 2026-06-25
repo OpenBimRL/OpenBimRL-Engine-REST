@@ -14,6 +14,7 @@
 #   services.openbimrl-api.enable = true;
 #   services.openbimrl-api.port = 8080;
 #   services.openbimrl-api.openFirewall = true;
+#   services.openbimrl-api.accessToken = "your-secret-token";
 #
 # Build the package manually (first build needs network for Maven; uses the
 # workspace Maven cache at ../../.m2/repository when present):

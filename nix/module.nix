@@ -48,6 +48,16 @@ in
       default = { };
       description = "Extra environment variables for the service.";
     };
+
+    accessToken = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Bearer token required by the API (`OPENBIMRL_API_ACCESS_TOKEN`).
+        When set, clients must send `Authorization: Bearer <token>`.
+        Leave unset to allow unauthenticated access.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -57,7 +67,9 @@ in
       after = [ "network.target" ];
       wants = [ "network.target" ];
 
-      environment = cfg.extraEnvironment;
+      environment = cfg.extraEnvironment // (lib.optionalAttrs (cfg.accessToken != null) {
+        OPENBIMRL_API_ACCESS_TOKEN = cfg.accessToken;
+      });
 
       serviceConfig = {
         Type = "simple";
