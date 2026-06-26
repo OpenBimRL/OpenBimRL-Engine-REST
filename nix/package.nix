@@ -65,12 +65,8 @@ let
     '';
   };
 
-  restSrc = fetchFromGitHub {
-    owner = "OpenBimRL";
-    repo = "OpenBimRL-Engine-REST";
-    rev = "fa4ce76a6851e58a73477fa5e1f87b428eab4ad6";
-    hash = "sha256-/6mqo1SXzIa4Gm+ZpDqkRRI125+FoqMu0pz5Sx1PiT8=";
-  };
+  # REST sources come from the enclosing repo checkout (submodule in infrastructure).
+  restSrc = lib.cleanSource ../.;
 
   jsonSrc = fetchurl {
     url = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz";
@@ -102,11 +98,86 @@ let
   clang = llvmPackages.clang;
   openmp = llvmPackages.openmp;
 
-  # Populated by local dev builds under ../../.m2/repository.
-  # Regenerate with: ./scripts/dev-start.sh (or any successful mvn build in this workspace).
-  prefetchedMavenRepo = builtins.path {
-    path = ../../.m2/repository;
-    name = "openbimrl-maven-repo";
+  # Sandbox-safe Maven cache: fetched once with network, then pinned by outputHash.
+  mavenRepository = stdenv.mkDerivation {
+    pname = "openbimrl-maven-repository";
+    version = builtins.hashString "sha256" (
+      (builtins.readFile "${restSrc}/pom.xml")
+      + (builtins.readFile "${bvhSrc}/pom.xml")
+      + (builtins.readFile "${apiSrc}/pom.xml")
+      + (builtins.readFile "${engineSrc}/pom.xml")
+    );
+
+    nativeBuildInputs = [ maven jdk21 ];
+    dontUnpack = true;
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-D0NRK9qM/GAm9g4ufNFG5nNEyusmlspJC2Gv8z4XoM0=";
+
+    buildPhase = ''
+      mavenRepo="$NIX_BUILD_TOP/maven-repo"
+      mkdir -p "$mavenRepo"
+      work="$NIX_BUILD_TOP/work"
+      mkdir -p "$work"
+      cp -r ${bvhSrc} "$work/bvh"
+      cp -r ${apiSrc} "$work/api"
+      cp -r ${engineSrc} "$work/engine"
+      cp -r ${restSrc} "$work/rest"
+      chmod -R u+w "$work"
+
+      mvnLocal() {
+        mvn --batch-mode -Dmaven.repo.local="$mavenRepo" "$@"
+      }
+
+      fetchPlugins() {
+        mvnLocal -f "$1" dependency:go-offline dependency:resolve-plugins -DskipTests
+      }
+
+      fetchPlugins "$work/bvh/pom.xml"
+      mvnLocal -f "$work/bvh/pom.xml" compiler:compile jar:jar install:install
+
+      fetchPlugins "$work/api/pom.xml"
+      pushd "$work/api"
+      mvnLocal -Dproject.build.sourceEncoding=ISO-8859-1 \
+        compiler:compile jar:jar install:install \
+        -DgroupId=inf.bi.rub.de \
+        -DartifactId=OpenBIMRL-API \
+        -Dversion=${openbimrlApiVersion} \
+        -Dpackaging=jar
+      popd
+
+      fetchPlugins "$work/engine/pom.xml"
+
+      # REST depends on the locally built engine artifact; install a stub so
+      # dependency:go-offline can prefetch Spring/Kotlin deps without native build.
+      stubJar="$work/engine-stub.jar"
+      ${jdk21}/bin/jar cf "$stubJar" -C ${restSrc} pom.xml
+      mvnLocal install:install-file \
+        -Dfile="$stubJar" \
+        -DgroupId=inf.bi.rub.de \
+        -DartifactId=openbimrl-engine \
+        -Dversion=2026.06.22 \
+        -Dpackaging=jar \
+        -DgeneratePom=true
+
+      fetchPlugins "$work/rest/pom.xml"
+      mvnLocal -f "$work/rest/pom.xml" dependency:resolve -DskipTests
+
+      for artifact in \
+        "org.glassfish.jaxb:jaxb-runtime:4.0.5" \
+        "com.google.code.gson:gson:2.10.1" \
+        "org.hamcrest:hamcrest-core:2.2" \
+        "org.jetbrains.kotlin:kotlin-maven-plugin:2.0.21" \
+        "org.jetbrains.kotlin:kotlin-maven-allopen:2.0.21"
+      do
+        mvnLocal dependency:get -Dartifact="$artifact" -Dtransitive=true
+      done
+    '';
+
+    installPhase = ''
+      mkdir -p "$out"
+      cp -r "$mavenRepo"/. "$out/"
+    '';
   };
 
   runtimeLibs = [
@@ -123,7 +194,7 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "openbimrl-api";
-  version = "0.5.4-alpha";
+  version = "0.5.5-alpha";
 
   src = restSrc;
 
@@ -168,7 +239,7 @@ stdenv.mkDerivation rec {
     work="$NIX_BUILD_TOP/openbimrl-work"
 
     mkdir -p "$mavenRepo" "$work"
-    cp -r ${prefetchedMavenRepo}/. "$mavenRepo/"
+    cp -r ${mavenRepository}/. "$mavenRepo/"
     chmod -R u+w "$mavenRepo"
     cp -r ${bvhSrc} "$work/bvh"
     cp -r ${apiSrc} "$work/api"
@@ -226,7 +297,7 @@ set(HDF5_FOUND TRUE)'
     popd
 
     echo "Building OpenBIMRL Engine REST ..."
-    mvnLocal -f "$work/rest/pom.xml" package -DskipTests
+    mvnLocal -f "$work/rest/pom.xml" package -Dmaven.test.skip=true
 
     runHook postBuild
   '';

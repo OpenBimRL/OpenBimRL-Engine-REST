@@ -1,11 +1,8 @@
 # OpenBIMRL Engine REST API — NixOS integration
 #
-# Adds `services.openbimrl-api.enable` and builds the stack from cloned GitHub
-# repositories (no Docker):
-#   - Maven-Bounding-Volume-Hierarchy
-#   - OpenBimRL (API)
-#   - OpenBimRL-Engine (+ native submodule)
-#   - OpenBimRL-Engine-REST
+# Adds `services.openbimrl-api.enable` and builds the stack (no Docker):
+#   - OpenBimRL-Engine-REST from this repository checkout
+#   - Maven-Bounding-Volume-Hierarchy, OpenBimRL API, Engine, etc. from pinned GitHub fetches
 #
 # Usage in configuration.nix:
 #
