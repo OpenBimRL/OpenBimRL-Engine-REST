@@ -38,11 +38,31 @@ let
     hash = "sha256-y/4UzD28PkQBYXMbcm8BPUQYlcJ50pAr44H/TowF0tg=";
   };
 
-  engineSrc = fetchgit {
-    url = "https://github.com/OpenBimRL/OpenBimRL-Engine.git";
+  engineBaseSrc = fetchFromGitHub {
+    owner = "OpenBimRL";
+    repo = "OpenBimRL-Engine";
     rev = "3783cae8ab08d7037a5b1cc0c1ace265d06b70ea";
-    hash = "sha256-Nvzyr+hDK3hE1afQ8TiWELSYSu21ClcRjb9Q6hjjj8A=";
-    fetchSubmodules = true;
+    hash = "sha256-F8NPhlIS5wt1TYLWqvQjPvlL8GC+hWDmrxQpTmzGlyM=";
+  };
+
+  engineNativeSrc = fetchFromGitHub {
+    owner = "OpenBimRL";
+    repo = "OpenBimRL-Engine-Native";
+    rev = "5be3f6150c462cbc1f09b39d45e3ab02a9fb0703";
+    hash = "sha256-Cuv6sZPFVqyDyeQRJNo0jJHspZD+7yoq4DmyRNh4HfI=";
+  };
+
+  engineSrc = stdenv.mkDerivation {
+    pname = "openbimrl-engine-src";
+    version = "3783cae";
+    dontUnpack = true;
+    installPhase = ''
+      mkdir -p "$out"
+      cp -r ${engineBaseSrc}/. "$out/"
+      chmod -R u+w "$out"
+      rm -rf "$out/src/main/cpp"
+      cp -r ${engineNativeSrc}/. "$out/src/main/cpp/"
+    '';
   };
 
   restSrc = fetchFromGitHub {
