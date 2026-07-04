@@ -32,4 +32,15 @@ class TemporaryFileService {
     final inline fun <reified T> getFileMetadata(path: Path, attributeName: String): T {
         return Files.getAttribute(path, "user:$attributeName") as T
     }
+
+    fun saveBytes(id: UUID, suffix: String, data: ByteArray) {
+        tempDir.resolve("${id}.${suffix}").toFile().writeBytes(data)
+    }
+
+    fun resolveResult(id: UUID, suffix: String): Path? {
+        val path = tempDir.resolve("${id}.${suffix}")
+        return if (Files.exists(path)) path else null
+    }
+
+    fun readBytes(path: Path): ByteArray = Files.readAllBytes(path)
 }

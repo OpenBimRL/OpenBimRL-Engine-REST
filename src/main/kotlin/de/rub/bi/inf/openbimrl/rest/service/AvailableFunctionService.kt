@@ -29,7 +29,7 @@ class AvailableFunctionService {
         "geometry" to GroupMetadata("Geometry Functions", "LightCyan"),
         "filter" to GroupMetadata("Filter Functions", "LightCyan"),
         "list" to GroupMetadata("List Functions", "LightCyan"),
-        "visual" to GroupMetadata("visual", "Cyan"),
+        "visualize" to GroupMetadata("Visualizers", "MediumPurple"),
     )
 
     private val groupOrder = listOf(
@@ -40,7 +40,7 @@ class AvailableFunctionService {
         "geometry",
         "filter",
         "list",
-        "visual",
+        "visualize",
     )
 
     /**
@@ -69,6 +69,7 @@ class AvailableFunctionService {
         val inputs: Array<FunctionHandle>,
         val outputs: Array<FunctionHandle>,
         val selected: Boolean = false,
+        val isVisualizer: Boolean = false,
     )
 
     data class FunctionHandle(val index: String, val name: String)
@@ -101,6 +102,7 @@ class AvailableFunctionService {
                                 it.displayName,
                             )
                         }.toTypedArray(),
+                        isVisualizer = annotation.isVisualizer,
                     ),
                 ),
             )

@@ -2,9 +2,12 @@ package de.rub.bi.inf.openbimrl.rest.controller
 
 import de.rub.bi.inf.nativelib.FunctionsNative
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
+import de.rub.bi.inf.openbimrl.rest.models.CheckRequest
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
+import de.rub.bi.inf.openbimrl.rest.models.CheckSubmission
 import de.rub.bi.inf.openbimrl.rest.models.StatusResponse
 import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
+import de.rub.bi.inf.openbimrl.rest.service.CheckResultStore
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
@@ -23,6 +26,7 @@ import kotlin.io.path.nameWithoutExtension
 class ApiController @Autowired constructor(
     private val fileService: TemporaryFileService,
     private val ruleCheckerService: RuleCheckingService,
+    private val checkResultStore: CheckResultStore,
     private val availableFunctionService: AvailableFunctionService,
     @Value("\${app.version:dev}") private val appVersionValue: String
 ) {
@@ -95,34 +99,47 @@ class ApiController @Autowired constructor(
         return ResponseEntity.status(HttpStatus.OK).body(functions.initIfc(file.toString()))
     }
 
-    @GetMapping("/check/{modelUUID}", produces = ["application/json"])
+    @PostMapping("/check/{modelUUID}", consumes = ["application/json"], produces = ["application/json"])
     fun check(
-        @RequestParam graphIDs: List<UUID>, @PathVariable modelUUID: UUID
-    ): ResponseEntity<ApiAnswer<CheckResult?>> {
-
-        // look for requested model file
+        @PathVariable modelUUID: UUID,
+        @RequestBody body: CheckRequest,
+    ): ResponseEntity<ApiAnswer<CheckSubmission?>> {
+        val graphIDs = body.graphIds
         val modelFile = fileService.filesWithGlob("${modelUUID}.ifc")
-        if (modelFile.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(ApiAnswer(null, "Model Not Found"))
-
-        // maybe using glob filter instead of filtering might be faster...
-        val graphFiles = fileService.filesWithGlob("*.openbimrl").filter {
-            // this has O(n^2) complexity. Not ideal...
-            for (item in graphIDs) if (it.nameWithoutExtension.split('.')[0] == item.toString()) return@filter true
-            // that's wyld syntax
-            return@filter false
-        }.map { it.toFile() } // convert from Path to File
-
-        //
-        try {
-            val ruleCheckingResult = ruleCheckerService.check(
-                modelFile[0].toFile(), graphFiles
-            )
-            // return answer
-            return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(ruleCheckingResult))
-        } catch (e: InvalidFunctionInputException) {
-            return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(null, "Error: " + e.stackTraceToString()))
+        if (modelFile.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiAnswer(null, "Model Not Found"))
         }
+
+        val graphFiles = fileService.filesWithGlob("*.openbimrl").filter {
+            for (item in graphIDs) {
+                if (it.nameWithoutExtension.split('.')[0] == item.toString()) return@filter true
+            }
+            return@filter false
+        }.map { it.toFile() }
+
+        try {
+            val checkRun = ruleCheckerService.check(modelFile[0].toFile(), graphFiles)
+            val resultId = checkResultStore.store(checkRun.result, checkRun.visualGlb)
+            return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(CheckSubmission(resultId)))
+        } catch (e: InvalidFunctionInputException) {
+            return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiAnswer(null, "Error: " + e.stackTraceToString()))
+        }
+    }
+
+    @GetMapping("/results/{resultId}/json", produces = ["application/json"])
+    fun getCheckResultJson(@PathVariable resultId: UUID): ResponseEntity<ApiAnswer<CheckResult?>> {
+        val result = checkResultStore.readJson(resultId)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiAnswer(null, "Result Not Found"))
+        return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(result))
+    }
+
+    @GetMapping("/results/{resultId}/visuals", produces = ["application/octet-stream"])
+    fun getCheckResultVisuals(@PathVariable resultId: UUID): ResponseEntity<ByteArray> {
+        val glb = checkResultStore.readVisuals(resultId)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+        return ResponseEntity.status(HttpStatus.OK).body(glb)
     }
 
     /**

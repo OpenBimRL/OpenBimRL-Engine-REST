@@ -26,11 +26,18 @@ class AvailableFunctionServiceTest {
     }
 
     @Test
-    fun `uses display group names matching the Creator Tool default library`() {
-        val groupNames = service.getRegisteredFunctions().map { it.name }
+    fun `includes visualizer functions in Visualizers group`() {
+        val groups = service.getRegisteredFunctions()
+        val visualizers = groups.find { it.name == "Visualizers" }
 
-        assertTrue(groupNames.contains("Input Functions"))
-        assertTrue(groupNames.contains("IFC Functions"))
-        assertTrue(groupNames.indexOf("Input Functions") < groupNames.indexOf("Identifiers"))
+        assertNotNull(visualizers)
+        assertEquals("MediumPurple", visualizers!!.color)
+
+        val heatmap = visualizers.items.singleOrNull {
+            it.type == "visualizeType" && it.data.name == "visualize.distanceHeatmap"
+        }
+        assertNotNull(heatmap)
+        assertTrue(heatmap!!.data.isVisualizer)
+        assertEquals(0, heatmap.data.outputs.size)
     }
 }
