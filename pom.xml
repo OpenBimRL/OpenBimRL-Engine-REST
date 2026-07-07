@@ -85,7 +85,7 @@
 		<dependency>
   			<groupId>inf.bi.rub.de</groupId>
   			<artifactId>openbimrl-engine</artifactId>
-  			<version>2026.06.22</version>
+  			<version>2026.07.05</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-devtools -->
