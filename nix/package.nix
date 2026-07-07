@@ -18,6 +18,13 @@
   autoPatchelfHook,
   patchelf,
   boost179,
+  eigen,
+  fontconfig,
+  libGL,
+  libx11,
+  freetype,
+  tcl,
+  tk,
   python3,
 }:
 
@@ -41,20 +48,20 @@ let
   engineBaseSrc = fetchFromGitHub {
     owner = "OpenBimRL";
     repo = "OpenBimRL-Engine";
-    rev = "3783cae8ab08d7037a5b1cc0c1ace265d06b70ea";
-    hash = "sha256-F8NPhlIS5wt1TYLWqvQjPvlL8GC+hWDmrxQpTmzGlyM=";
+    rev = "f0267f5144ae1bbf115069e5984f424561446565";
+    hash = "sha256-9YIz+qCxycBvcPopsNqH05ZA3XZaGkU/FYq6yYFFGQE=";
   };
 
   engineNativeSrc = fetchFromGitHub {
     owner = "OpenBimRL";
     repo = "OpenBimRL-Engine-Native";
-    rev = "5be3f6150c462cbc1f09b39d45e3ab02a9fb0703";
-    hash = "sha256-Cuv6sZPFVqyDyeQRJNo0jJHspZD+7yoq4DmyRNh4HfI=";
+    rev = "ab8f90e6817ece6cfab2b8123e850ff17afbd6c3";
+    hash = "sha256-XNpH3BeoP/oYcH30WVQc/mjWJf0WyxbLbNcavbVrnTw=";
   };
 
   engineSrc = stdenv.mkDerivation {
     pname = "openbimrl-engine-src";
-    version = "3783cae";
+    version = "2026.07.05";
     dontUnpack = true;
     installPhase = ''
       mkdir -p "$out"
@@ -75,8 +82,8 @@ let
 
   ifcopenshellSrc = fetchgit {
     url = "https://github.com/IfcOpenShell/IfcOpenShell.git";
-    rev = "60a70f5236528eaad63a1bb9109044d04a108679";
-    hash = "sha256-r7oYouJGMrnCP0NkAw7L03/Lfh0ak/CCPbLyQBm7MKo=";
+    rev = "eafa158ca0cd5ba2ca22b5e588b0375cab2efbce";
+    hash = "sha256-Uic2GWI49Bo/MPmm6o8JYEBqii3SU5Zk9tuWF0Sj8CM=";
     fetchSubmodules = true;
   };
 
@@ -112,7 +119,7 @@ let
     dontUnpack = true;
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-D0NRK9qM/GAm9g4ufNFG5nNEyusmlspJC2Gv8z4XoM0=";
+    outputHash = "sha256-BgAF4cqK8iAYDwI9G9EQOooHDTemZoyHYxoBrgCbhFQ=";
 
     buildPhase = ''
       mavenRepo="$NIX_BUILD_TOP/maven-repo"
@@ -156,7 +163,7 @@ let
         -Dfile="$stubJar" \
         -DgroupId=inf.bi.rub.de \
         -DartifactId=openbimrl-engine \
-        -Dversion=2026.06.22 \
+        -Dversion=2026.07.05 \
         -Dpackaging=jar \
         -DgeneratePom=true
 
@@ -167,8 +174,9 @@ let
         "org.glassfish.jaxb:jaxb-runtime:4.0.5" \
         "com.google.code.gson:gson:2.10.1" \
         "org.hamcrest:hamcrest-core:2.2" \
-        "org.jetbrains.kotlin:kotlin-maven-plugin:2.0.21" \
-        "org.jetbrains.kotlin:kotlin-maven-allopen:2.0.21"
+        "org.jetbrains.kotlin:kotlin-maven-plugin:2.3.10" \
+        "org.jetbrains.kotlin:kotlin-maven-allopen:2.3.10" \
+        "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3"
       do
         mvnLocal dependency:get -Dartifact="$artifact" -Dtransitive=true
       done
@@ -188,13 +196,19 @@ let
     libxml2
     mpfr
     openmp
+    fontconfig
+    freetype
+    libGL
+    libx11
+    tcl
+    tk
     stdenv.cc.cc.lib
   ];
 
 in
 stdenv.mkDerivation rec {
   pname = "openbimrl-api";
-  version = "0.5.5-alpha";
+  version = "0.6.0-beta";
 
   src = restSrc;
 
@@ -207,13 +221,21 @@ stdenv.mkDerivation rec {
     maven
     jdk21
     clang
-    autoPatchelfHook
     makeWrapper
     patchelf
     python3
   ];
 
-  buildInputs = runtimeLibs ++ [ hdf5.bin boost179.dev ];
+  dontAutoPatchELF = true;
+
+  buildInputs = runtimeLibs ++ [
+    hdf5.bin
+    boost179.dev
+    eigen
+    fontconfig
+    libGL
+    libx11
+  ];
 
   env = {
     NIX_CFLAGS_COMPILE = "-I${opencascade-occt_7_6}/include/opencascade";
@@ -259,21 +281,15 @@ stdenv.mkDerivation rec {
 
     substituteInPlace "$work/engine/src/main/cpp/CMakeLists.txt" \
       --replace '"/usr/include/opencascade"' '"${opencascade-occt_7_6}/include/opencascade"' \
-      --replace '"/usr/include/oce"' '"${opencascade-occt_7_6}/include/opencascade"' \
-      --replace 'find_package(HDF5 REQUIRED)' 'set(HDF5_INCLUDE_DIRS "${hdf5.dev}/include")
-set(HDF5_INCLUDE_DIR "${hdf5.dev}/include")
-set(HDF5_LIBRARIES "${hdf5}/lib/libhdf5.so")
-set(HDF5_FOUND TRUE)'
+      --replace '"/usr/include/oce"' '"${opencascade-occt_7_6}/include/opencascade"'
 
     substituteInPlace "$work/engine/Makefile" \
-      --replace 'C_COMPILER="$(CC)";' 'C_COMPILER="${clang}/bin/clang";' \
-      --replace 'CXX_COMPILER="$(CXX)";' 'CXX_COMPILER="${clang}/bin/clang++";' \
-      --replace '-DOPENBIMRL_ROCM_OFFLOAD_ARCH=$$ROCM_ARCH;' '-DOPENBIMRL_ROCM_OFFLOAD_ARCH=$$ROCM_ARCH \
-			-DBoost_NO_BOOST_CMAKE=ON \
-			-DBOOST_ROOT=${boost179.dev} \
-			-DFETCHCONTENT_SOURCE_DIR_IFCOPENSHELL=IFCOPENSHELL_SRC_PLACEHOLDER \
-			-DFETCHCONTENT_SOURCE_DIR_JSON=${jsonUnpacked} \
-			-DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${googletestSrc};'
+      --replace '-DOPENBIMRL_IFCOPENSHELL_PREFIX=$(OPENBIMRL_IFCOPENSHELL_PREFIX);' \
+        '-DOPENBIMRL_IFCOPENSHELL_PREFIX=$(OPENBIMRL_IFCOPENSHELL_PREFIX) \
+          -DOpenCASCADE_DIR=${opencascade-occt_7_6}/lib/cmake/opencascade \
+          -DCMAKE_PREFIX_PATH=${eigen}/share/eigen3/cmake:${boost179.dev}/lib/cmake:${hdf5.dev}/lib/cmake \
+          -DFETCHCONTENT_SOURCE_DIR_IFCOPENSHELL=IFCOPENSHELL_SRC_PLACEHOLDER \
+          -DFETCHCONTENT_SOURCE_DIR_JSON=${jsonUnpacked};'
 
     substituteInPlace "$work/engine/Makefile" \
       --replace 'IFCOPENSHELL_SRC_PLACEHOLDER' "$ifcSrc"
@@ -293,7 +309,8 @@ set(HDF5_FOUND TRUE)'
 
     echo "Building OpenBIMRL Engine (native + Maven) ..."
     pushd "$work/engine"
-    mvnLocal install -DskipTests
+    OPENBIMRL_NATIVE_CACHE_DIR="$NIX_BUILD_TOP/openbimrl-native-cache" \
+      mvnLocal install -DskipTests
     popd
 
     echo "Building OpenBIMRL Engine REST ..."
@@ -318,13 +335,28 @@ set(HDF5_FOUND TRUE)'
     mkdir -p $out/lib $out/bin
     cp "$jarFile" $out/lib/openbimrl-api.jar
 
-    ifcLibDir="$work/engine/build/cmake/_deps/ifcopenshell-build"
+    nativeCache="$NIX_BUILD_TOP/openbimrl-native-cache/cmake"
+    ifcLibDir="$nativeCache/_deps/ifcopenshell-build"
+
     if [ -d "$ifcLibDir" ]; then
-      cp -L "$ifcLibDir"/libIfcGeom.so* "$ifcLibDir"/libIfcParse.so* $out/lib/ 2>/dev/null || true
-      for lib in $out/lib/libIfc*.so*; do
-        patchelf --set-rpath "${lib.makeLibraryPath runtimeLibs}" "$lib"
+      find "$ifcLibDir" \( -name '*.so' -o -name '*.so.*' \) -type f -exec cp -L {} $out/lib/ \;
+      for target in $out/lib/libIfcGeom.so.0.8.0 $out/lib/libIfcParse.so.0.8.0; do
+        [ -f "$target" ] || continue
+        soname="''${target%.0}"
+        if [ ! -e "$soname" ]; then
+          ln -s "$(basename "$target")" "$soname"
+        fi
       done
     fi
+
+    if [ -f "$nativeCache/libOpenBIMRL_Native.so" ]; then
+      cp -L "$nativeCache/libOpenBIMRL_Native.so" $out/lib/
+    fi
+
+    for lib in $out/lib/*.so*; do
+      [ -e "$lib" ] || continue
+      patchelf --set-rpath "${lib.makeLibraryPath runtimeLibs}:$out/lib" "$lib"
+    done
 
     makeWrapper ${jdk21}/bin/java $out/bin/openbimrl-api \
       --add-flags "-jar $out/lib/openbimrl-api.jar" \
