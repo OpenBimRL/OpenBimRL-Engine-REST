@@ -16,8 +16,6 @@ import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.multipart
 import org.springframework.test.web.servlet.post
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.UUID
 
 @SpringBootTest
@@ -29,22 +27,18 @@ class OpenBimRlEngineRestApplicationTests {
 	private lateinit var mockMvc: MockMvc
 
 	private lateinit var modelId: String
-	private val graphContent: String = Files.readString(
-		Paths.get("../OpenBimRL-Engine/src/test/resources/show_distances.openbimrl"),
-	)
-	private val ifcPath = Paths.get("../OpenBimRL-Engine/src/test/resources/pathfinding_minimal.ifc")
+	private val graphContent: String = readClasspathResource("show_distances.openbimrl").decodeToString()
+	private val ifcBytes: ByteArray = readClasspathResource("pathfinding_minimal.ifc")
 
 	@BeforeAll
 	fun uploadModel() {
-		require(Files.exists(ifcPath)) { "Missing test IFC at $ifcPath" }
-
 		val modelResponse = mockMvc.multipart("/model") {
 			file(
 				MockMultipartFile(
 					"file",
 					"pathfinding_minimal.ifc",
 					"application/octet-stream",
-					Files.readAllBytes(ifcPath),
+					ifcBytes,
 				),
 			)
 		}.andReturn().response.contentAsString
@@ -53,6 +47,10 @@ class OpenBimRlEngineRestApplicationTests {
 			.find(modelResponse)?.groupValues?.get(1)
 			?: error("Could not parse model upload response: $modelResponse")
 	}
+
+	private fun readClasspathResource(name: String): ByteArray =
+		javaClass.classLoader.getResourceAsStream(name)?.readBytes()
+			?: error("Missing classpath test resource: $name")
 
 	@Test
 	fun contextLoads() {
@@ -66,7 +64,7 @@ class OpenBimRlEngineRestApplicationTests {
 					"file",
 					"to_delete.ifc",
 					"application/octet-stream",
-					Files.readAllBytes(ifcPath),
+					ifcBytes,
 				),
 			)
 		}.andReturn().response.contentAsString
