@@ -159,6 +159,18 @@ class ApiController @Autowired constructor(
         return ResponseEntity.status(HttpStatus.OK).body(fileContents)
     }
 
+    @DeleteMapping("/model/{uuid}", produces = ["application/json"])
+    fun deleteModel(@PathVariable uuid: UUID): ResponseEntity<ApiAnswer<Boolean?>> {
+        val files = fileService.filesWithGlob("${uuid}.ifc")
+        if (files.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiAnswer(null, "Model Not Found"))
+        }
+
+        fileService.delete(files[0])
+        return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(true))
+    }
+
     @GetMapping("/functions", produces = ["application/json"])
     fun getFunctions(): ApiAnswer<Array<AvailableFunctionService.Group>> {
         return ApiAnswer(availableFunctionService.getRegisteredFunctions())

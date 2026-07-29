@@ -43,4 +43,6 @@ class TemporaryFileService {
     }
 
     fun readBytes(path: Path): ByteArray = Files.readAllBytes(path)
+
+    fun delete(path: Path): Boolean = Files.deleteIfExists(path)
 }
