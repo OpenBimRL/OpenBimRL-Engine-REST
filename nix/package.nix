@@ -61,7 +61,7 @@ let
 
   engineSrc = stdenv.mkDerivation {
     pname = "openbimrl-engine-src";
-    version = "2026.07.05";
+    version = "2026.07.29";
     dontUnpack = true;
     installPhase = ''
       mkdir -p "$out"
@@ -163,7 +163,7 @@ let
         -Dfile="$stubJar" \
         -DgroupId=inf.bi.rub.de \
         -DartifactId=openbimrl-engine \
-        -Dversion=2026.07.05 \
+        -Dversion=2026.07.29 \
         -Dpackaging=jar \
         -DgeneratePom=true
 
@@ -208,7 +208,7 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "openbimrl-api";
-  version = "0.6.0-beta";
+  version = "0.7.0-beta";
 
   src = restSrc;
 
