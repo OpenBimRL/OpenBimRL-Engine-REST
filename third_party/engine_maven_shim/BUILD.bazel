@@ -1,0 +1,7 @@
+package(default_visibility = ["//visibility:public"])
+
+# Same label as OpenBimRL-Engine //:engine_lib — REST always depends here.
+alias(
+    name = "engine_lib",
+    actual = "@maven//:de_rub_bi_inf_openbimrl_engine_core",
+)

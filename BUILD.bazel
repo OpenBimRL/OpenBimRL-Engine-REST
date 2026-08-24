@@ -1,0 +1,97 @@
+load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_kotlin//kotlin:core.bzl", "define_kt_toolchain", "kt_compiler_plugin")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library", "kt_jvm_test")
+
+package(default_visibility = ["//visibility:public"])
+
+define_kt_toolchain(
+    name = "kotlin_toolchain",
+    api_version = "2.1",
+    jvm_target = "21",
+    language_version = "2.1",
+)
+
+genrule(
+    name = "application_properties",
+    srcs = ["src/main/resources/application.properties"],
+    outs = ["filtered/application.properties"],
+    cmd = """
+set -euo pipefail
+sed 's/@project.version@/0.7.0-beta/' '$<' > '$@'
+""",
+)
+
+REST_MAVEN_DEPS = [
+    "@maven//:com_fasterxml_jackson_module_jackson_module_kotlin",
+    "@maven//:com_github_ajalt_colormath_colormath_jvm",
+    "@openbimrl_engine//:engine_lib",
+    "@maven//:javax_xml_bind_jaxb_api",
+    "@maven//:org_glassfish_jaxb_jaxb_runtime",
+    "@maven//:org_jetbrains_kotlin_kotlin_reflect",
+    "@maven//:org_jetbrains_kotlin_kotlin_stdlib",
+    "@maven//:org_springdoc_springdoc_openapi_starter_webmvc_ui",
+    "@maven//:org_springframework_boot_spring_boot_starter_data_rest",
+    "@maven//:org_springframework_boot_spring_boot_starter_web",
+]
+
+kt_compiler_plugin(
+    name = "spring_allopen_plugin",
+    id = "org.jetbrains.kotlin.allopen",
+    options = {
+        "preset": "spring",
+    },
+    deps = ["@maven//:org_jetbrains_kotlin_kotlin_allopen_compiler_plugin"],
+)
+
+kt_jvm_library(
+    name = "rest_lib",
+    srcs = glob(["src/main/kotlin/**/*.kt"]),
+    plugins = [":spring_allopen_plugin"],
+    resources = [
+        ":application_properties",
+        "src/main/resources/application-dev.properties",
+    ],
+    deps = REST_MAVEN_DEPS,
+)
+
+java_binary(
+    name = "rest_app",
+    main_class = "de.rub.bi.inf.openbimrl.rest.OpenBimRlEngineRestApplicationKt",
+    runtime_deps = [":rest_lib"],
+)
+
+alias(
+    name = "rest_deploy.jar",
+    actual = ":rest_app_deploy.jar",
+)
+
+kt_jvm_test(
+    name = "available_function_service_test",
+    srcs = ["src/test/kotlin/de/rub/bi/inf/openbimrl/rest/service/AvailableFunctionServiceTest.kt"],
+    test_class = "de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionServiceTest",
+    deps = [
+        ":rest_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+    ],
+)
+
+kt_jvm_test(
+    name = "rest_integration_test",
+    size = "large",
+    srcs = ["src/test/kotlin/de/rub/bi/inf/openbimrl/rest/OpenBimRlEngineRestApplicationTests.kt"],
+    resources = glob(["src/test/resources/**"]),
+    test_class = "de.rub.bi.inf.openbimrl.rest.OpenBimRlEngineRestApplicationTests",
+    deps = [
+        ":rest_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_springframework_boot_spring_boot_starter_test",
+    ],
+)
+
+test_suite(
+    name = "rest_tests",
+    tests = [
+        ":available_function_service_test",
+        ":rest_integration_test",
+    ],
+)

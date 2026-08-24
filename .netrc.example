@@ -1,0 +1,7 @@
+# Copy to .netrc and replace placeholders (file mode must be 600):
+#   cp .netrc.example .netrc && chmod 600 .netrc
+#
+# GitHub PAT needs read:packages (and repo if the package is private).
+# Login is your GitHub username or the org bot user for CI tokens.
+
+machine maven.pkg.github.com login YOUR_GITHUB_USERNAME password YOUR_GITHUB_PAT

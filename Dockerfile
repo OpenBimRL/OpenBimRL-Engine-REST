@@ -1,11 +1,52 @@
-FROM ghcr.io/openbimrl/openbimrl-engine:2026.07.30
+# syntax=docker/dockerfile:1
 
+# OpenBimRL Engine-REST — standalone Bazel build.
+# Depends on the published Engine Maven package (GitHub Packages) and the Engine
+# runtime image for IfcOpenShell / OCCT shared libraries.
+#
+#   docker build -t openbimrl-engine-rest \
+#     --build-arg GITHUB_ACTOR=… --build-arg GITHUB_ACCESS_TOKEN=… .
+
+ARG BAZELISK_VERSION=1.29.0
+ARG ENGINE_RUNTIME_IMAGE=ghcr.io/openbimrl/openbimrl-engine:latest
+ARG GITHUB_ACTOR
+ARG GITHUB_ACCESS_TOKEN
+
+FROM eclipse-temurin:21-jdk-noble AS build
+
+ARG BAZELISK_VERSION
+ARG GITHUB_ACTOR
+ARG GITHUB_ACCESS_TOKEN
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH=${JAVA_HOME}/bin:${PATH}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64" \
+        -o /usr/local/bin/bazel \
+    && chmod +x /usr/local/bin/bazel
+
+WORKDIR /app
+COPY . .
+
+RUN if [ -n "${GITHUB_ACTOR}" ] && [ -n "${GITHUB_ACCESS_TOKEN}" ]; then \
+        printf 'machine maven.pkg.github.com login %s password %s\n' \
+            "${GITHUB_ACTOR}" "${GITHUB_ACCESS_TOKEN}" >> /root/.netrc; \
+        chmod 600 /root/.netrc; \
+    fi
+
+RUN bazel build //:rest_deploy.jar
+
+FROM ${ENGINE_RUNTIME_IMAGE}
+
+USER root
 RUN rm -rf /app
 WORKDIR /app
 
-COPY . .
+COPY --from=build /app/bazel-bin/rest_deploy.jar /app/app.jar
 
-RUN mvn install
-
-CMD ["mvn", "spring-boot:run"]
 EXPOSE 8080
+CMD ["java", "-jar", "/app/app.jar"]

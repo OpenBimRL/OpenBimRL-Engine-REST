@@ -12,7 +12,7 @@ import java.io.File
 @Service
 class RuleCheckingService {
     private val lib = let {
-        FunctionsNative.create("lib.so") // init lib
+        FunctionsNative.create() // init lib (libOpenBimRL-Engine-Native-x86_64.so)
         return@let FunctionsNative.getInstance()
     }
 

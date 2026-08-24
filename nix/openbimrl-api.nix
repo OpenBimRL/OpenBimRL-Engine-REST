@@ -1,8 +1,11 @@
 # OpenBIMRL Engine REST API — NixOS integration
 #
-# Adds `services.openbimrl-api.enable` and builds the stack (no Docker):
-#   - OpenBimRL-Engine-REST from this repository checkout
-#   - Maven-Bounding-Volume-Hierarchy, OpenBimRL API, Engine, etc. from pinned GitHub fetches
+# Builds with pkgs.buildBazelPackage (no Docker / no Maven for the app):
+#   - Monorepo Bazel target //OpenBimRL-Engine-REST:rest_deploy.jar
+#   - Engine (+ native) via @openbimrl_engine local_path_override
+#   - IfcOpenShell (pinned) for native runtime libs
+#
+# OpenBimRL schema and BVH are compiled inside Engine's Bazel graph (http_archive).
 #
 # Usage in configuration.nix:
 #
@@ -13,22 +16,29 @@
 #   services.openbimrl-api.openFirewall = true;
 #   services.openbimrl-api.accessToken = "your-secret-token";
 #
-# Build the package manually (first build needs network for Maven; uses the
-# workspace Maven cache at ../../.m2/repository when present):
+# Build (needs network for the Bazel deps FOD; host layout uses __noChroot):
 #
 #   nix-build ./OpenBimRL-Engine-REST/nix/openbimrl-api.nix -A openbimrl-api \
 #     --option sandbox false
 #
-# Or with flakes (after adding nix files to git):
+# Or with flakes:
 #
 #   nix build ./OpenBimRL-Engine-REST#openbimrl-api --option sandbox false
+#
+# Monorepo override for flakes (from Workspace root):
+#
+#   nix build ./OpenBimRL-Engine-REST#openbimrl-api --option sandbox false \
+#     --override-input openbimrl-workspace path:.
 #
 { pkgs ? import <nixpkgs> { } }:
 
 {
   nixpkgs.overlays = [
     (final: prev: {
-      openbimrl-api = final.callPackage ./package.nix { };
+      openbimrl-api = final.callPackage ./package.nix {
+        # Workspace root that contains MODULE.bazel + OpenBimRL-Engine (+ Native).
+        workspaceSrc = final.lib.cleanSource ../..;
+      };
     })
   ];
 

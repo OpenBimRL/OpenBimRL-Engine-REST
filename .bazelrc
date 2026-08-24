@@ -1,0 +1,24 @@
+# OpenBimRL-Engine-REST — standalone Bazel module
+
+common --enable_bzlmod
+common --noenable_workspace
+
+build --java_language_version=21
+build --java_runtime_version=21
+build --tool_java_language_version=21
+build --tool_java_runtime_version=21
+
+build --extra_toolchains=//:kotlin_toolchain
+test --extra_toolchains=//:kotlin_toolchain
+
+# GitHub Packages auth: copy repo .netrc to ~/.netrc before standalone builds, e.g.:
+#   install -m 600 .netrc ~/.netrc
+# (rules_jvm_external reads $HOME/.netrc during maven resolution; do not set
+# HOME=%workspace% — it relocates Bazel's output base into the repo.)
+
+# Engine native .so + IfcOpenShell (DevContainer / Engine runtime image)
+test --test_env=LD_LIBRARY_PATH=/opt/ifcopenshell/lib
+test --test_env=OPENBIMRL_IFCOPENSHELL_PREFIX=/opt/ifcopenshell
+test --test_output=errors
+
+build --curses=yes

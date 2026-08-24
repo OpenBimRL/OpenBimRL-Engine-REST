@@ -1,12 +1,15 @@
+# FIXME: Update to `bazel build //:rest_deploy.jar` in this repo (Maven dep:
+# de.rub.bi.inf.openbimrl.engine:core via GitHub Packages ~/.netrc).
 {
   lib,
   stdenv,
-  fetchgit,
   fetchFromGitHub,
-  fetchurl,
+  fetchgit,
+  buildBazelPackage,
+  bazel_9,
   jdk21,
-  maven,
   cmake,
+  ninja,
   llvmPackages,
   gnumake,
   hdf5,
@@ -15,7 +18,6 @@
   mpfr,
   opencascade-occt_7_6,
   makeWrapper,
-  autoPatchelfHook,
   patchelf,
   boost179,
   eigen,
@@ -26,59 +28,59 @@
   tcl,
   tk,
   python3,
+  git,
+  which,
+  cacert,
+  # Monorepo root (MODULE.bazel). Override for flakes / local checkouts.
+  workspaceSrc ? null,
 }:
 
 let
-  openbimrlApiVersion = "2023.07.1";
+  clang = llvmPackages.clang;
+  openmp = llvmPackages.openmp;
 
-  bvhSrc = fetchFromGitHub {
-    owner = "RUB-Informatik-im-Bauwesen";
-    repo = "Maven-Bounding-Volume-Hierarchy";
-    rev = "d92129c5af88743e19b9ab801f69e3fb72baf46d";
-    hash = "sha256-tAnnLvv1oNBilgQ52VdRyNI+ug/JUfzeYAiXVDCRzaY=";
+  # buildBazelPackage does `bazel.override { enableNixHacks = true; }`, which
+  # bazel_8+/bazel_9 reject (intentional in nixpkgs). Ignore the flag.
+  bazel = bazel_9 // {
+    override = { enableNixHacks ? false, ... }: bazel_9;
   };
 
-  apiSrc = fetchFromGitHub {
-    owner = "RUB-Informatik-im-Bauwesen";
-    repo = "OpenBimRL";
-    rev = "83bd65f52803d7e86a464b592899c6709888c47a";
-    hash = "sha256-y/4UzD28PkQBYXMbcm8BPUQYlcJ50pAr44H/TowF0tg=";
-  };
-
-  engineBaseSrc = fetchFromGitHub {
-    owner = "OpenBimRL";
-    repo = "OpenBimRL-Engine";
-    rev = "f0267f5144ae1bbf115069e5984f424561446565";
-    hash = "sha256-9YIz+qCxycBvcPopsNqH05ZA3XZaGkU/FYq6yYFFGQE=";
-  };
-
-  engineNativeSrc = fetchFromGitHub {
-    owner = "OpenBimRL";
-    repo = "OpenBimRL-Engine-Native";
-    rev = "ab8f90e6817ece6cfab2b8123e850ff17afbd6c3";
-    hash = "sha256-XNpH3BeoP/oYcH30WVQc/mjWJf0WyxbLbNcavbVrnTw=";
-  };
-
-  engineSrc = stdenv.mkDerivation {
-    pname = "openbimrl-engine-src";
-    version = "2026.07.30";
-    dontUnpack = true;
-    installPhase = ''
-      mkdir -p "$out"
-      cp -r ${engineBaseSrc}/. "$out/"
-      chmod -R u+w "$out"
-      rm -rf "$out/src/main/cpp"
-      cp -r ${engineNativeSrc}/. "$out/src/main/cpp/"
-    '';
-  };
-
-  # REST sources come from the enclosing repo checkout (submodule in infrastructure).
-  restSrc = lib.cleanSource ../.;
-
-  jsonSrc = fetchurl {
-    url = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz";
-    hash = "sha256-1sZaymse1o56GC9HVyV7EHrkAwMnYO1u8SHJ1V6BdX0=";
-  };
+  resolvedWorkspaceSrc =
+    if workspaceSrc != null then
+      workspaceSrc
+    else if builtins.pathExists ../../MODULE.bazel then
+      lib.cleanSourceWith {
+        src = ../..;
+        name = "openbimrl-workspace-src";
+        filter =
+          path: _type:
+          let
+            base = baseNameOf path;
+          in
+          !(builtins.elem base [
+            ".git"
+            "node_modules"
+            "bazel-bin"
+            "bazel-out"
+            "bazel-testlogs"
+            "bazel-openbimrl"
+            "bazel-OpenBimRL-Engine"
+            "target"
+            ".m2"
+            ".cache"
+            "result"
+            "CMakeFiles"
+          ]);
+      }
+    else
+      fetchFromGitHub {
+        owner = "OpenBimRL";
+        repo = "Workspace";
+        rev = "96a88b41d009ab08a1572d2fe33fac2c0c54617f";
+        # Bump after changing rev (must include Engine + Native submodules).
+        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        fetchSubmodules = true;
+      };
 
   ifcopenshellSrc = fetchgit {
     url = "https://github.com/IfcOpenShell/IfcOpenShell.git";
@@ -87,104 +89,61 @@ let
     fetchSubmodules = true;
   };
 
-  googletestSrc = fetchFromGitHub {
-    owner = "google";
-    repo = "googletest";
-    rev = "f8d7d77c06936315286eb55f8de22cd23c188571";
-    hash = "sha256-t0RchAHTJbuI5YW4uyBPykTvcjy90JW9AOPNjIhwh6U=";
-  };
+  ifcopenshell = stdenv.mkDerivation {
+    pname = "openbimrl-ifcopenshell";
+    version = "0.8.0-eafa158";
+    src = ifcopenshellSrc;
 
-  jsonUnpacked = stdenv.mkDerivation {
-    pname = "nlohmann-json-src";
-    version = "3.11.3";
-    src = jsonSrc;
-    unpackPhase = "runHook preUnpack; tar -xJf $src; runHook postUnpack";
-    installPhase = "mkdir -p $out; cp -r json/* $out/";
-  };
+    nativeBuildInputs = [
+      cmake
+      ninja
+      clang
+      gnumake
+    ];
+    buildInputs = [
+      opencascade-occt_7_6
+      boost179
+      eigen
+      hdf5
+      gmp
+      mpfr
+      libxml2
+    ];
 
-  clang = llvmPackages.clang;
-  openmp = llvmPackages.openmp;
-
-  # Sandbox-safe Maven cache: fetched once with network, then pinned by outputHash.
-  mavenRepository = stdenv.mkDerivation {
-    pname = "openbimrl-maven-repository";
-    version = builtins.hashString "sha256" (
-      (builtins.readFile "${restSrc}/pom.xml")
-      + (builtins.readFile "${bvhSrc}/pom.xml")
-      + (builtins.readFile "${apiSrc}/pom.xml")
-      + (builtins.readFile "${engineSrc}/pom.xml")
-    );
-
-    nativeBuildInputs = [ maven jdk21 ];
-    dontUnpack = true;
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
-    outputHash = "sha256-BgAF4cqK8iAYDwI9G9EQOooHDTemZoyHYxoBrgCbhFQ=";
+    dontUseCmakeConfigure = true;
 
     buildPhase = ''
-      mavenRepo="$NIX_BUILD_TOP/maven-repo"
-      mkdir -p "$mavenRepo"
-      work="$NIX_BUILD_TOP/work"
-      mkdir -p "$work"
-      cp -r ${bvhSrc} "$work/bvh"
-      cp -r ${apiSrc} "$work/api"
-      cp -r ${engineSrc} "$work/engine"
-      cp -r ${restSrc} "$work/rest"
-      chmod -R u+w "$work"
-
-      mvnLocal() {
-        mvn --batch-mode -Dmaven.repo.local="$mavenRepo" "$@"
-      }
-
-      fetchPlugins() {
-        mvnLocal -f "$1" dependency:go-offline dependency:resolve-plugins -DskipTests
-      }
-
-      fetchPlugins "$work/bvh/pom.xml"
-      mvnLocal -f "$work/bvh/pom.xml" compiler:compile jar:jar install:install
-
-      fetchPlugins "$work/api/pom.xml"
-      pushd "$work/api"
-      mvnLocal -Dproject.build.sourceEncoding=ISO-8859-1 \
-        compiler:compile jar:jar install:install \
-        -DgroupId=inf.bi.rub.de \
-        -DartifactId=OpenBIMRL-API \
-        -Dversion=${openbimrlApiVersion} \
-        -Dpackaging=jar
-      popd
-
-      fetchPlugins "$work/engine/pom.xml"
-
-      # REST depends on the locally built engine artifact; install a stub so
-      # dependency:go-offline can prefetch Spring/Kotlin deps without native build.
-      stubJar="$work/engine-stub.jar"
-      ${jdk21}/bin/jar cf "$stubJar" -C ${restSrc} pom.xml
-      mvnLocal install:install-file \
-        -Dfile="$stubJar" \
-        -DgroupId=inf.bi.rub.de \
-        -DartifactId=openbimrl-engine \
-        -Dversion=2026.07.30 \
-        -Dpackaging=jar \
-        -DgeneratePom=true
-
-      fetchPlugins "$work/rest/pom.xml"
-      mvnLocal -f "$work/rest/pom.xml" dependency:resolve -DskipTests
-
-      for artifact in \
-        "org.glassfish.jaxb:jaxb-runtime:4.0.5" \
-        "com.google.code.gson:gson:2.10.1" \
-        "org.hamcrest:hamcrest-core:2.2" \
-        "org.jetbrains.kotlin:kotlin-maven-plugin:2.3.10" \
-        "org.jetbrains.kotlin:kotlin-maven-allopen:2.3.10" \
-        "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3"
-      do
-        mvnLocal dependency:get -Dartifact="$artifact" -Dtransitive=true
-      done
+      runHook preBuild
+      substituteInPlace cmake/CMakeLists.txt \
+        --replace 'add_subdirectory(../src/svgfill svgfill)' '# nix: svgfill disabled'
+      cmake -G Ninja -S cmake -B build \
+        -DCMAKE_C_COMPILER=${clang}/bin/clang \
+        -DCMAKE_CXX_COMPILER=${clang}/bin/clang++ \
+        -DCMAKE_INSTALL_PREFIX=$out \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DOCC_INCLUDE_DIR=${opencascade-occt_7_6}/include/opencascade \
+        -DOCC_LIBRARY_DIR=${opencascade-occt_7_6}/lib \
+        -DBUILD_SHARED_LIBS=ON \
+        -DSCHEMA_VERSIONS="2x3;4;4x3_add2" \
+        -DBUILD_CONVERT=OFF \
+        -DBUILD_IFCPYTHON=OFF \
+        -DBUILD_GEOMSERVER=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_DOCUMENTATION=OFF \
+        -DWITH_CGAL=OFF \
+        -DCOLLADA_SUPPORT=OFF \
+        -DHDF5_SUPPORT=OFF \
+        -DGLTF_SUPPORT=OFF \
+        -DIFCXML_SUPPORT=OFF \
+        -DUSD_SUPPORT=OFF
+      cmake --build build -j"$NIX_BUILD_CORES"
+      runHook postBuild
     '';
 
     installPhase = ''
-      mkdir -p "$out"
-      cp -r "$mavenRepo"/. "$out/"
+      runHook preInstall
+      cmake --install build
+      runHook postInstall
     '';
   };
 
@@ -205,141 +164,146 @@ let
     stdenv.cc.cc.lib
   ];
 
+  # Host layout expected by Engine .bazelrc + native cmake cache_entries.
+  setupHostTooling = ''
+    mkdir -p /opt /usr/bin
+    ln -sfn ${clang}/bin/clang /usr/bin/clang
+    ln -sfn ${clang}/bin/clang++ /usr/bin/clang++
+    ln -sfn ${ifcopenshell} /opt/ifcopenshell
+    export CC=${clang}/bin/clang
+    export CXX=${clang}/bin/clang++
+    export JAVA_HOME=${jdk21}
+    export OPENBIMRL_USE_PREBUILT_IFCOPENSHELL=ON
+    export OPENBIMRL_IFCOPENSHELL_PREFIX=/opt/ifcopenshell
+    export LD_LIBRARY_PATH=/opt/ifcopenshell/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    export CMAKE_PREFIX_PATH=${
+      lib.makeSearchPathOutput "dev" "lib/cmake" [
+        boost179
+        hdf5
+        opencascade-occt_7_6
+      ]
+    }
+    export PKG_CONFIG_PATH=${
+      lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
+        hdf5
+        libxml2
+      ]
+    }
+    export NIX_CFLAGS_COMPILE="-I${opencascade-occt_7_6}/include/opencascade ''${NIX_CFLAGS_COMPILE:-}"
+  '';
+
 in
-stdenv.mkDerivation rec {
+buildBazelPackage {
   pname = "openbimrl-api";
   version = "0.7.0-beta";
 
-  src = restSrc;
+  src = resolvedWorkspaceSrc;
+  inherit bazel;
 
-  dontUseCmakeConfigure = true;
-  dontConfigure = true;
+  # Fat jar for the Spring Boot REST service (pulls @openbimrl_engine native .so).
+  bazelTargets = [ "//OpenBimRL-Engine-REST:rest_deploy.jar" ];
 
-  nativeBuildInputs = [
-    cmake
-    gnumake
-    maven
-    jdk21
-    clang
-    makeWrapper
-    patchelf
-    python3
+  bazelBuildFlags = [
+    "--ignore_dev_dependency" # skip CreatorTool npm / aspect_rules_js
+    "--verbose_failures"
+    "--action_env=CMAKE_PREFIX_PATH"
+    "--action_env=PKG_CONFIG_PATH"
+    "--action_env=NIX_CFLAGS_COMPILE"
+    "--action_env=LD_LIBRARY_PATH"
+    "--action_env=OPENBIMRL_IFCOPENSHELL_PREFIX"
+    "--action_env=OPENBIMRL_USE_PREBUILT_IFCOPENSHELL"
+    "--action_env=JAVA_HOME"
   ];
 
-  dontAutoPatchELF = true;
-
-  buildInputs = runtimeLibs ++ [
-    hdf5.bin
-    boost179.dev
-    eigen
-    fontconfig
-    libGL
-    libx11
+  bazelFetchFlags = [
+    "--ignore_dev_dependency"
   ];
 
-  env = {
-    NIX_CFLAGS_COMPILE = "-I${opencascade-occt_7_6}/include/opencascade";
-    CC = "${clang}/bin/clang";
-    CXX = "${clang}/bin/clang++";
-    OPENBIMRL_ENABLE_ROCM_OFFLOAD = "OFF";
-    CMAKE_PREFIX_PATH = lib.makeSearchPathOutput "dev" "lib/cmake" [
-      boost179
-      hdf5
-      opencascade-occt_7_6
+  # Keep local_* repos if analysis materializes them; remotejdk is fine either way.
+  removeLocal = false;
+
+  fetchAttrs = {
+    # Fixed-output: first successful prefetch prints the real hash — bump this.
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    __noChroot = true;
+    nativeBuildInputs = [
+      cmake
+      ninja
+      gnumake
+      clang
+      jdk21
+      git
+      which
+      python3
+      cacert
     ];
-    PKG_CONFIG_PATH = lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
-      hdf5
-      libxml2
+    buildInputs = runtimeLibs ++ [
+      hdf5.bin
+      boost179.dev
+      eigen
     ];
+    preBuild = setupHostTooling + ''
+      # Match nixpkgs bazel version so the wrapper does not try to download
+      # another release from .bazelversion (project pins 9.2.0).
+      echo "${bazel_9.version}" > .bazelversion
+      echo "${bazel_9.version}" > OpenBimRL-Engine/.bazelversion
+      export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
+      export GIT_SSL_CAINFO=$SSL_CERT_FILE
+    '';
   };
 
+  buildAttrs = {
+    __noChroot = true;
+    nativeBuildInputs = [
+      cmake
+      ninja
+      gnumake
+      clang
+      jdk21
+      makeWrapper
+      patchelf
+      git
+      which
+      python3
+    ];
+    buildInputs = runtimeLibs ++ [
+      hdf5.bin
+      boost179.dev
+      eigen
+      fontconfig
+      libGL
+      libx11
+    ];
 
-  buildPhase = ''
-    runHook preBuild
+    preConfigure = setupHostTooling + ''
+      echo "${bazel_9.version}" > .bazelversion
+      echo "${bazel_9.version}" > OpenBimRL-Engine/.bazelversion
+    '';
 
-    mavenRepo="$NIX_BUILD_TOP/maven-repo"
-    work="$NIX_BUILD_TOP/openbimrl-work"
+    installPhase = ''
+      runHook preInstall
 
-    mkdir -p "$mavenRepo" "$work"
-    cp -r ${mavenRepository}/. "$mavenRepo/"
-    chmod -R u+w "$mavenRepo"
-    cp -r ${bvhSrc} "$work/bvh"
-    cp -r ${apiSrc} "$work/api"
-    cp -r ${engineSrc} "$work/engine"
-    cp -r ${ifcopenshellSrc} "$work/ifcopenshell"
-    cp -r $src "$work/rest"
-    chmod -R u+w "$work"
+      jarFile=
+      for candidate in \
+        bazel-bin/OpenBimRL-Engine-REST/rest_deploy.jar \
+        "$bazelOut"/execroot/*/bazel-out/*/bin/OpenBimRL-Engine-REST/rest_deploy.jar
+      do
+        if [ -f "$candidate" ]; then
+          jarFile=$candidate
+          break
+        fi
+      done
+      if [ -z "$jarFile" ]; then
+        echo "Could not find rest_deploy.jar" >&2
+        find bazel-bin "$bazelOut" -name 'rest_deploy.jar' 2>/dev/null | head || true
+        exit 1
+      fi
 
-    substituteInPlace "$work/ifcopenshell/cmake/CMakeLists.txt" \
-      --replace 'add_subdirectory(../src/svgfill svgfill)' '# nix: svgfill disabled'
+      mkdir -p $out/lib $out/bin
+      cp -L "$jarFile" $out/lib/openbimrl-api.jar
 
-    ifcSrc="$work/ifcopenshell"
-
-    mvnLocal() {
-      mvn --batch-mode -Dmaven.repo.local="$mavenRepo" "$@"
-    }
-
-    substituteInPlace "$work/engine/src/main/cpp/CMakeLists.txt" \
-      --replace '"/usr/include/opencascade"' '"${opencascade-occt_7_6}/include/opencascade"' \
-      --replace '"/usr/include/oce"' '"${opencascade-occt_7_6}/include/opencascade"'
-
-    substituteInPlace "$work/engine/Makefile" \
-      --replace '-DOPENBIMRL_IFCOPENSHELL_PREFIX=$(OPENBIMRL_IFCOPENSHELL_PREFIX);' \
-        '-DOPENBIMRL_IFCOPENSHELL_PREFIX=$(OPENBIMRL_IFCOPENSHELL_PREFIX) \
-          -DOpenCASCADE_DIR=${opencascade-occt_7_6}/lib/cmake/opencascade \
-          -DCMAKE_PREFIX_PATH=${eigen}/share/eigen3/cmake:${boost179.dev}/lib/cmake:${hdf5.dev}/lib/cmake \
-          -DFETCHCONTENT_SOURCE_DIR_IFCOPENSHELL=IFCOPENSHELL_SRC_PLACEHOLDER \
-          -DFETCHCONTENT_SOURCE_DIR_JSON=${jsonUnpacked};'
-
-    substituteInPlace "$work/engine/Makefile" \
-      --replace 'IFCOPENSHELL_SRC_PLACEHOLDER' "$ifcSrc"
-
-    echo "Building Maven dependency: BVH ..."
-    mvnLocal -f "$work/bvh/pom.xml" compiler:compile jar:jar install:install
-
-    echo "Building Maven dependency: OpenBIMRL-API ..."
-    pushd "$work/api"
-    mvnLocal -Dproject.build.sourceEncoding=ISO-8859-1 \
-      compiler:compile jar:jar install:install \
-      -DgroupId=inf.bi.rub.de \
-      -DartifactId=OpenBIMRL-API \
-      -Dversion=${openbimrlApiVersion} \
-      -Dpackaging=jar
-    popd
-
-    echo "Building OpenBIMRL Engine (native + Maven) ..."
-    pushd "$work/engine"
-    OPENBIMRL_NATIVE_CACHE_DIR="$NIX_BUILD_TOP/openbimrl-native-cache" \
-      mvnLocal install -DskipTests
-    popd
-
-    echo "Building OpenBIMRL Engine REST ..."
-    mvnLocal -f "$work/rest/pom.xml" package -Dmaven.test.skip=true
-
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    mavenRepo="$NIX_BUILD_TOP/maven-repo"
-    work="$NIX_BUILD_TOP/openbimrl-work"
-
-    jarFile=$(find "$work/rest/target" -maxdepth 1 -name 'OpenBimRL-Engine-REST-*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)
-    if [ -z "$jarFile" ]; then
-      echo "Could not find REST application jar in $work/rest/target"
-      ls -la "$work/rest/target" || true
-      exit 1
-    fi
-
-    mkdir -p $out/lib $out/bin
-    cp "$jarFile" $out/lib/openbimrl-api.jar
-
-    nativeCache="$NIX_BUILD_TOP/openbimrl-native-cache/cmake"
-    ifcLibDir="$nativeCache/_deps/ifcopenshell-build"
-
-    if [ -d "$ifcLibDir" ]; then
-      find "$ifcLibDir" \( -name '*.so' -o -name '*.so.*' \) -type f -exec cp -L {} $out/lib/ \;
+      # IfcOpenShell runtime shared libs (OpenBIMRL native .so is inside the jar).
+      find ${ifcopenshell}/lib \( -name '*.so' -o -name '*.so.*' \) -type f -exec cp -L {} $out/lib/ \;
       for target in $out/lib/libIfcGeom.so.0.8.0 $out/lib/libIfcParse.so.0.8.0; do
         [ -f "$target" ] || continue
         soname="''${target%.0}"
@@ -347,26 +311,22 @@ stdenv.mkDerivation rec {
           ln -s "$(basename "$target")" "$soname"
         fi
       done
-    fi
 
-    if [ -f "$nativeCache/libOpenBIMRL_Native.so" ]; then
-      cp -L "$nativeCache/libOpenBIMRL_Native.so" $out/lib/
-    fi
+      for lib in $out/lib/*.so*; do
+        [ -e "$lib" ] || continue
+        patchelf --set-rpath "${lib.makeLibraryPath runtimeLibs}:$out/lib" "$lib" || true
+      done
 
-    for lib in $out/lib/*.so*; do
-      [ -e "$lib" ] || continue
-      patchelf --set-rpath "${lib.makeLibraryPath runtimeLibs}:$out/lib" "$lib"
-    done
+      makeWrapper ${jdk21}/bin/java $out/bin/openbimrl-api \
+        --add-flags "-jar $out/lib/openbimrl-api.jar" \
+        --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath runtimeLibs}:$out/lib"
 
-    makeWrapper ${jdk21}/bin/java $out/bin/openbimrl-api \
-      --add-flags "-jar $out/lib/openbimrl-api.jar" \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath runtimeLibs}:$out/lib"
-
-    runHook postInstall
-  '';
+      runHook postInstall
+    '';
+  };
 
   meta = with lib; {
-    description = "OpenBIMRL Engine REST API (Spring Boot)";
+    description = "OpenBIMRL Engine REST API (Spring Boot, Bazel)";
     homepage = "https://github.com/OpenBimRL/OpenBimRL-Engine-REST";
     license = licenses.mit;
     platforms = platforms.linux;

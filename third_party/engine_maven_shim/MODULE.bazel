@@ -1,0 +1,30 @@
+"""Published Engine JVM API (Maven) exposed as @openbimrl_engine//:engine_lib.
+
+Used when OpenBimRL-Engine-REST is the root module (standalone CI / Docker).
+The Workspace root overrides this module with local_path_override → OpenBimRL-Engine.
+"""
+
+module(
+    name = "openbimrl_engine",
+    version = "2026.08.24",
+)
+
+bazel_dep(name = "rules_jvm_external", version = "7.1")
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+        "de.rub.bi.inf.openbimrl.engine:core:2026.08.24",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+        "https://maven-central.storage-download.googleapis.com/maven2",
+        "https://repo.maven.apache.org/maven2",
+        "https://maven.imagej.net/content/repositories/public/",
+        "https://jitpack.io",
+        "https://maven.pkg.github.com/OpenBimRL/OpenBimRL-Engine",
+    ],
+    resolve_timeout = 1200,
+    use_credentials_from_home_netrc_file = True,
+)
+use_repo(maven, "maven")

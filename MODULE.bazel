@@ -1,0 +1,65 @@
+"""OpenBimRL-Engine-REST — standalone Bazel module (Spring Boot).
+
+Consumes the published Engine JVM package from GitHub Packages:
+  de.rub.bi.inf.openbimrl.engine:core
+Runtime native libs (IfcOpenShell / OCCT) come from the Engine Docker image.
+"""
+
+module(
+    name = "openbimrl_engine_rest",
+    version = "0.7.0-beta",
+)
+
+bazel_dep(name = "rules_kotlin", version = "2.3.20")
+bazel_dep(name = "rules_jvm_external", version = "7.1")
+bazel_dep(name = "rules_java", version = "9.3.0")
+bazel_dep(name = "platforms", version = "1.0.0")
+
+# Same module name/version as OpenBimRL-Engine. When this repo is the root module,
+# resolve Engine from GitHub Packages. The Workspace root overrides this path with
+# OpenBimRL-Engine/ for local dev (see third_party/engine_maven_shim/).
+bazel_dep(name = "openbimrl_engine", version = "2026.08.24")
+local_path_override(
+    module_name = "openbimrl_engine",
+    path = "third_party/engine_maven_shim",
+)
+
+java_toolchains = use_extension("@rules_java//java:extensions.bzl", "toolchains")
+use_repo(java_toolchains, "local_jdk")
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+        # Spring Boot (versions from BOM unless overridden)
+        "org.springframework.boot:spring-boot-starter-data-rest:3.3.5",
+        "org.springframework.boot:spring-boot-starter-web:3.3.5",
+        "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0",
+        "com.fasterxml.jackson.module:jackson-module-kotlin",
+        "javax.xml.bind:jaxb-api:2.3.1",
+        "org.glassfish.jaxb:jaxb-runtime:2.3.1",
+        "org.jetbrains.kotlin:kotlin-reflect:2.3.10",
+        "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
+        "org.jetbrains.kotlin:kotlin-allopen-compiler-plugin:2.3.10",
+        "com.github.ajalt.colormath:colormath-jvm:3.6.0",
+        # Tests
+        "org.springframework.boot:spring-boot-starter-test:3.3.5",
+        "org.junit.jupiter:junit-jupiter-api:5.11.4",
+        "org.junit.jupiter:junit-jupiter-engine:5.11.4",
+        "org.junit.platform:junit-platform-console:1.11.4",
+        "org.junit.platform:junit-platform-launcher:1.11.4",
+    ],
+    boms = [
+        "org.springframework.boot:spring-boot-dependencies:3.3.5",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+        "https://maven-central.storage-download.googleapis.com/maven2",
+        "https://repo.maven.apache.org/maven2",
+        "https://maven.imagej.net/content/repositories/public/",
+        "https://jitpack.io",
+        "https://maven.pkg.github.com/OpenBimRL/OpenBimRL-Engine",
+    ],
+    resolve_timeout = 1200,
+    use_credentials_from_home_netrc_file = True,
+)
+use_repo(maven, "maven")
