@@ -11,16 +11,6 @@ define_kt_toolchain(
     language_version = "2.1",
 )
 
-genrule(
-    name = "application_properties",
-    srcs = ["src/main/resources/application.properties"],
-    outs = ["filtered/application.properties"],
-    cmd = """
-set -euo pipefail
-sed 's/@project.version@/0.7.0-beta/' '$<' > '$@'
-""",
-)
-
 REST_MAVEN_DEPS = [
     "@maven//:com_fasterxml_jackson_module_jackson_module_kotlin",
     "@maven//:com_github_ajalt_colormath_colormath_jvm",
@@ -48,7 +38,7 @@ kt_jvm_library(
     srcs = glob(["src/main/kotlin/**/*.kt"]),
     plugins = [":spring_allopen_plugin"],
     resources = [
-        ":application_properties",
+        "src/main/resources/application.properties",
         "src/main/resources/application-dev.properties",
     ],
     deps = REST_MAVEN_DEPS,

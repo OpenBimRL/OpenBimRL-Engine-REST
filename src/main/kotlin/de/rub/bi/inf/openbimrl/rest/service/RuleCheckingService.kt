@@ -2,7 +2,7 @@ package de.rub.bi.inf.openbimrl.rest.service
 
 import de.rub.bi.inf.logger.RuleLogger
 import de.rub.bi.inf.model.RuleBase
-import de.rub.bi.inf.nativelib.FunctionsNative
+import de.rub.bi.inf.nativelib.NativeEngine
 import de.rub.bi.inf.openbimrl.OpenRule
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
 import de.rub.bi.inf.openbimrl.utils.OpenBimRLReader
@@ -12,8 +12,8 @@ import java.io.File
 @Service
 class RuleCheckingService {
     private val lib = let {
-        FunctionsNative.create() // init lib (libOpenBimRL-Engine-Native-x86_64.so)
-        return@let FunctionsNative.getInstance()
+        NativeEngine.loadNative()
+        return@let NativeEngine
     }
 
     data class CheckRunResult(val result: CheckResult, val visualGlb: ByteArray?)

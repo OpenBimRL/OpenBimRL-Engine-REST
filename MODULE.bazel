@@ -41,10 +41,13 @@ maven.install(
         "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
         "org.jetbrains.kotlin:kotlin-allopen-compiler-plugin:2.3.10",
         "com.github.ajalt.colormath:colormath-jvm:3.6.0",
-        # Tests
+        # Tests — align JUnit Platform with Engine (merged @maven hub).
         "org.springframework.boot:spring-boot-starter-test:3.3.5",
         "org.junit.jupiter:junit-jupiter-api:5.11.4",
         "org.junit.jupiter:junit-jupiter-engine:5.11.4",
+        "org.junit.platform:junit-platform-commons:1.11.4",
+        "org.junit.platform:junit-platform-engine:1.11.4",
+        "org.junit.platform:junit-platform-reporting:1.11.4",
         "org.junit.platform:junit-platform-console:1.11.4",
         "org.junit.platform:junit-platform-launcher:1.11.4",
     ],

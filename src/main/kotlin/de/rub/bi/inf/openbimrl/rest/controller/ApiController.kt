@@ -1,6 +1,7 @@
 package de.rub.bi.inf.openbimrl.rest.controller
 
-import de.rub.bi.inf.nativelib.FunctionsNative
+import de.rub.bi.inf.nativelib.NativeEngine
+import de.rub.bi.inf.openbimrl.EngineInfo
 import de.rub.bi.inf.openbimrl.rest.models.ApiAnswer
 import de.rub.bi.inf.openbimrl.rest.models.CheckRequest
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
@@ -30,13 +31,6 @@ class ApiController @Autowired constructor(
     private val availableFunctionService: AvailableFunctionService,
     @Value("\${app.version:dev}") private val appVersionValue: String
 ) {
-    private fun env(name: String): String? = System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
-
-    private fun isGpuOffloadEnabled(): Boolean {
-        val value = env("OPENBIMRL_ENABLE_ROCM_OFFLOAD")?.lowercase() ?: return false
-        return value == "on" || value == "true" || value == "1" || value == "yes"
-    }
-
     private fun appVersion(): String {
         return appVersionValue.ifBlank { "dev" }
     }
@@ -89,14 +83,14 @@ class ApiController @Autowired constructor(
     @Deprecated("only for testing!")
     fun test(): ResponseEntity<Boolean> {
 
-        val functions = FunctionsNative.getInstance()
+        NativeEngine.loadNative()
 
         val files = fileService.filesWithGlob("*.ifc")
         if (files.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
 
         val file = files[0] // can't fail cause previous empty check
 
-        return ResponseEntity.status(HttpStatus.OK).body(functions.initIfc(file.toString()))
+        return ResponseEntity.status(HttpStatus.OK).body(NativeEngine.initIfc(file.toString()))
     }
 
     @PostMapping("/check/{modelUUID}", consumes = ["application/json"], produces = ["application/json"])
@@ -190,8 +184,8 @@ class ApiController @Autowired constructor(
         return ApiAnswer(
             StatusResponse(
                 version = appVersion(),
-                gpuOffloadEnabled = isGpuOffloadEnabled(),
-                gpuOffloadArch = env("OPENBIMRL_ROCM_OFFLOAD_ARCH")
+                engineVersion = EngineInfo.version,
+                nativeLib = NativeEngine.libInfo(),
             )
         )
     }
