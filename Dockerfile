@@ -44,7 +44,10 @@ RUN if [ -n "${GITHUB_ACTOR}" ] && [ -n "${GITHUB_ACCESS_TOKEN}" ]; then \
         chmod 600 /root/.netrc; \
     fi
 
-RUN bazel build --config=docker //:rest_deploy.jar
+# Alias //:rest_deploy.jar does not emit a file; the deploy jar is rest_app_deploy.jar.
+RUN bazel build --config=docker //:rest_deploy.jar \
+    && mkdir -p /out \
+    && cp -f bazel-bin/rest_app_deploy.jar /out/app.jar
 
 FROM ${ENGINE_RUNTIME_IMAGE}
 
@@ -52,7 +55,7 @@ USER root
 RUN rm -rf /app
 WORKDIR /app
 
-COPY --from=build /app/bazel-bin/rest_deploy.jar /app/app.jar
+COPY --from=build /out/app.jar /app/app.jar
 
 EXPOSE 8080
 CMD ["java", "-jar", "/app/app.jar"]
