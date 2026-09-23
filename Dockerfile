@@ -44,7 +44,7 @@ RUN if [ -n "${GITHUB_ACTOR}" ] && [ -n "${GITHUB_ACCESS_TOKEN}" ]; then \
         chmod 600 /root/.netrc; \
     fi
 
-RUN bazel build //:rest_deploy.jar
+RUN bazel build --config=docker //:rest_deploy.jar
 
 FROM ${ENGINE_RUNTIME_IMAGE}
 

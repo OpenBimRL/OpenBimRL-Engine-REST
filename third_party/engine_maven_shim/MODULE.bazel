@@ -6,7 +6,7 @@ The Workspace root overrides this module with local_path_override → OpenBimRL-
 
 module(
     name = "openbimrl_engine",
-    version = "2026.08.24",
+    version = "2026.08.29",
 )
 
 bazel_dep(name = "rules_jvm_external", version = "7.1")
@@ -14,7 +14,7 @@ bazel_dep(name = "rules_jvm_external", version = "7.1")
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     artifacts = [
-        "de.rub.bi.inf.openbimrl.engine:core:2026.08.24",
+        "de.rub.bi.inf.openbimrl.engine:core:2026.08.29",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",

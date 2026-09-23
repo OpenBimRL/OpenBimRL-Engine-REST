@@ -37,9 +37,11 @@ maven.install(
         "com.fasterxml.jackson.module:jackson-module-kotlin",
         "javax.xml.bind:jaxb-api:2.3.1",
         "org.glassfish.jaxb:jaxb-runtime:2.3.1",
-        "org.jetbrains.kotlin:kotlin-reflect:2.3.10",
-        "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
-        "org.jetbrains.kotlin:kotlin-allopen-compiler-plugin:2.3.10",
+        # Match rules_kotlin 2.4.10 embedded compiler (Kotlin 2.4.10). A mismatched
+        # allopen plugin JAR crashes kotlinc during //:rest_lib.
+        "org.jetbrains.kotlin:kotlin-reflect:2.4.10",
+        "org.jetbrains.kotlin:kotlin-stdlib:2.4.10",
+        "org.jetbrains.kotlin:kotlin-allopen-compiler-plugin:2.4.10",
         "com.github.ajalt.colormath:colormath-jvm:3.6.0",
         # Tests — align JUnit Platform with Engine (merged @maven hub).
         "org.springframework.boot:spring-boot-starter-test:3.3.5",
