@@ -22,8 +22,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH=${JAVA_HOME}/bin:${PATH}
 
+# clang: Bazel rules_cc autoconfigures a local C toolchain even for pure JVM
+# targets (transitive via rules_java / protobuf). Without it, analysis fails with
+# "Cannot find gcc or CC". Match Engine images: use clang via CC/CXX.
+ENV CC=/usr/bin/clang
+ENV CXX=/usr/bin/clang++
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates curl python3 \
+        ca-certificates curl python3 clang \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64" \
         -o /usr/local/bin/bazel \
