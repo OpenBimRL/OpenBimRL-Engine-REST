@@ -29,6 +29,7 @@ class AvailableFunctionService {
         "geometry" to GroupMetadata("Geometry Functions", "LightCyan"),
         "filter" to GroupMetadata("Filter Functions", "LightCyan"),
         "list" to GroupMetadata("List Functions", "LightCyan"),
+        "script" to GroupMetadata("Code / Script", "MediumSeaGreen"),
         "visualize" to GroupMetadata("Visualizers", "MediumPurple"),
     )
 
@@ -40,6 +41,7 @@ class AvailableFunctionService {
         "geometry",
         "filter",
         "list",
+        "script",
         "visualize",
     )
 
@@ -81,6 +83,7 @@ class AvailableFunctionService {
             val annotation = value.getAnnotation(OpenBIMRLFunction::class.java)
             val functionPorts = findFunctionPortDefinitions(value)
             val groupKey = key.split('.')[0]
+            val defaultLabel = if (annotation.type == "codeType") "ScriptName" else "Example Text Here"
             groups.computeIfAbsent(groupKey) { mutableListOf() }.add(
                 Function(
                     UUID.randomUUID(),
@@ -89,7 +92,7 @@ class AvailableFunctionService {
                         key,
                         "exclamation-circle-fill",
                         annotation.description.ifBlank { key },
-                        "Example Text Here",
+                        defaultLabel,
                         inputs = functionPorts.inputs.map {
                             FunctionHandle(
                                 it.position.toString(),

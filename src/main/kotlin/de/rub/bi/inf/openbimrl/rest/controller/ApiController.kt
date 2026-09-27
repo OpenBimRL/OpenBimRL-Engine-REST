@@ -10,6 +10,7 @@ import de.rub.bi.inf.openbimrl.rest.models.StatusResponse
 import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
 import de.rub.bi.inf.openbimrl.rest.service.CheckResultStore
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
+import de.rub.bi.inf.openbimrl.rest.service.ScriptTypesService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
 import org.apache.commons.io.IOUtils
@@ -29,6 +30,7 @@ class ApiController @Autowired constructor(
     private val ruleCheckerService: RuleCheckingService,
     private val checkResultStore: CheckResultStore,
     private val availableFunctionService: AvailableFunctionService,
+    private val scriptTypesService: ScriptTypesService,
     @Value("\${app.version:dev}") private val appVersionValue: String
 ) {
     private fun appVersion(): String {
@@ -168,6 +170,11 @@ class ApiController @Autowired constructor(
     @GetMapping("/functions", produces = ["application/json"])
     fun getFunctions(): ApiAnswer<Array<AvailableFunctionService.Group>> {
         return ApiAnswer(availableFunctionService.getRegisteredFunctions())
+    }
+
+    @GetMapping("/script/types", produces = ["application/json"])
+    fun getScriptTypes(): ApiAnswer<List<ScriptTypesService.ScriptTypeDto>> {
+        return ApiAnswer(scriptTypesService.listTypes())
     }
 
     /**

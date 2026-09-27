@@ -4,8 +4,14 @@
 # Depends on the published Engine Maven package (GitHub Packages) and the Engine
 # runtime image for IfcOpenShell / OCCT shared libraries.
 #
+# Engine GAV: de.rub.bi.inf.openbimrl.engine:core:2026.09.28
+# REST image tag: MODULE.bazel version (currently 0.9.0-beta)
+#
 #   docker build -t openbimrl-engine-rest \
 #     --build-arg GITHUB_ACTOR=… --build-arg GITHUB_ACCESS_TOKEN=… .
+#
+# Optional: pin Engine runtime image to a dated tag once published, e.g.
+#   --build-arg ENGINE_RUNTIME_IMAGE=ghcr.io/openbimrl/openbimrl-engine:2026.09.28
 
 ARG BAZELISK_VERSION=1.29.0
 ARG ENGINE_RUNTIME_IMAGE=ghcr.io/openbimrl/openbimrl-engine:latest

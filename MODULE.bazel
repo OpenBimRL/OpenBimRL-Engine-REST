@@ -7,7 +7,7 @@ Runtime native libs (IfcOpenShell / OCCT) come from the Engine Docker image.
 
 module(
     name = "openbimrl_engine_rest",
-    version = "0.8.0-beta",
+    version = "0.9.0-beta",
 )
 
 bazel_dep(name = "rules_kotlin", version = "2.4.10")
@@ -18,7 +18,7 @@ bazel_dep(name = "platforms", version = "1.0.0")
 # Same module name/version as OpenBimRL-Engine. When this repo is the root module,
 # resolve Engine from GitHub Packages. The Workspace root overrides this path with
 # OpenBimRL-Engine/ for local dev (see third_party/engine_maven_shim/).
-bazel_dep(name = "openbimrl_engine", version = "2026.08.29")
+bazel_dep(name = "openbimrl_engine", version = "2026.09.28")
 local_path_override(
     module_name = "openbimrl_engine",
     path = "third_party/engine_maven_shim",
