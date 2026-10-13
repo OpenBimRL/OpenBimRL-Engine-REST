@@ -23,31 +23,39 @@ class RuleCheckingService {
             return CheckRunResult(CheckResult(emptyMap(), emptyMap(), String()), null)
         }
 
-        OpenBimRLReader(graphFiles)
-        val logger = RuleLogger()
-        val builder = StringBuilder()
-        var visualGlb: ByteArray? = null
+        // Always clear the singleton RuleBase, even when a check throws —
+        // otherwise failed runs leave stale rules that poison later requests.
+        try {
+            OpenBimRLReader(graphFiles)
+            val logger = RuleLogger()
+            val builder = StringBuilder()
+            var visualGlb: ByteArray? = null
 
-        for (ruleDef in RuleBase.getInstance().rules) {
-            invokeRuleCheck(ruleDef, logger)
-            if (ruleDef is OpenRule) {
-                visualGlb = ruleDef.getVisualGlb()
+            for (ruleDef in RuleBase.getInstance().rules) {
+                invokeRuleCheck(ruleDef, logger)
+                if (ruleDef is OpenRule) {
+                    visualGlb = ruleDef.getVisualGlb()
+                }
+                builder.append(ruleDef.checkedStatus)
             }
-            builder.append(ruleDef.checkedStatus)
+
+            return CheckRunResult(
+                CheckResult(logger.getLogs(), logger.getResults(), builder.toString()),
+                visualGlb,
+            )
+        } finally {
+            RuleBase.getInstance().resetAllRules()
         }
-
-        RuleBase.getInstance().resetAllRules()
-
-        return CheckRunResult(
-            CheckResult(logger.getLogs(), logger.getResults(), builder.toString()),
-            visualGlb,
-        )
     }
 
     private fun invokeRuleCheck(ruleDef: Any, logger: RuleLogger) {
         val checkMethod = ruleDef.javaClass.methods.firstOrNull { method ->
             method.name == "check" && method.parameterCount == 1
         } ?: throw IllegalStateException("No check(logger) method found on ${ruleDef.javaClass.name}")
-        checkMethod.invoke(ruleDef, logger)
+        try {
+            checkMethod.invoke(ruleDef, logger)
+        } catch (e: java.lang.reflect.InvocationTargetException) {
+            throw e.targetException ?: e
+        }
     }
 }

@@ -120,7 +120,11 @@ class ApiController @Autowired constructor(
             return ResponseEntity.status(HttpStatus.OK).body(ApiAnswer(CheckSubmission(resultId)))
         } catch (e: InvalidFunctionInputException) {
             return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiAnswer(null, "Error: " + e.stackTraceToString()))
+                .body(ApiAnswer(null, "Error: " + e.message))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiAnswer(null, "Error: " + (e.message ?: e::class.java.simpleName)))
         }
     }
 

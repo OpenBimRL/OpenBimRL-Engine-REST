@@ -8,9 +8,16 @@ on:
     branches:
       - main
       - master
+  # Optional: Engine maven-publish can fire this once the JAR is up.
+  repository_dispatch:
+    types: [engine-maven-published]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
+  # Engine "Maven Package" CI (IfcOpenShell + Bazel) often takes 30–60+ minutes.
+  ENGINE_WAIT_ATTEMPTS: "90"
+  ENGINE_WAIT_SECONDS: "60"
 
 jobs:
   docker_publish:
@@ -24,6 +31,51 @@ jobs:
         run: |
           version=$(grep -E '^\s*version\s*=' MODULE.bazel | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Read Engine version pin from MODULE.bazel
+        id: engine_version
+        run: |
+          if [ -n "${{ github.event.client_payload.engine_version }}" ]; then
+            version="${{ github.event.client_payload.engine_version }}"
+          else
+            version=$(grep -E 'bazel_dep\(name = "openbimrl_engine"' MODULE.bazel \
+              | sed -E 's/.*version = "([^"]+)".*/\1/')
+          fi
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      # REST compiles against de.rub.bi.inf.openbimrl.engine:core from GitHub Packages.
+      # That artifact only appears when Engine's "Maven Package" workflow finishes —
+      # so this is effectively "wait for Engine CI" across the two repos
+      # (workflow_run only works within one repository).
+      - name: Wait for Engine Maven Package (Engine CI)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENGINE_VERSION: ${{ steps.engine_version.outputs.value }}
+        run: |
+          set -euo pipefail
+          pom_url="https://maven.pkg.github.com/OpenBimRL/OpenBimRL-Engine/de/rub/bi/inf/openbimrl/engine/core/${ENGINE_VERSION}/core-${ENGINE_VERSION}.pom"
+          echo "Waiting for Engine CI output: core:${ENGINE_VERSION}"
+          echo "Polling ${pom_url}"
+          for i in $(seq 1 "${ENGINE_WAIT_ATTEMPTS}"); do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              -u "${GITHUB_ACTOR}:${GH_TOKEN}" \
+              "${pom_url}" || true)
+            if [ "${code}" = "200" ]; then
+              echo "Engine Maven package ${ENGINE_VERSION} is available (attempt ${i})"
+              exit 0
+            fi
+            # Best-effort status from Engine's Maven Package workflow (public API / token).
+            run_json=$(gh run list -R OpenBimRL/OpenBimRL-Engine \
+              --workflow "Maven Package" --branch master --limit 1 \
+              --json status,conclusion,displayTitle,url 2>/dev/null || true)
+            if [ -n "${run_json}" ] && [ "${run_json}" != "[]" ]; then
+              echo "Latest Engine Maven Package run: ${run_json}"
+            fi
+            echo "Attempt ${i}/${ENGINE_WAIT_ATTEMPTS}: HTTP ${code}; sleeping ${ENGINE_WAIT_SECONDS}s"
+            sleep "${ENGINE_WAIT_SECONDS}"
+          done
+          echo "Timed out waiting for Engine Maven package ${ENGINE_VERSION}" >&2
+          exit 1
 
       - name: downcase REPO
         run: |
