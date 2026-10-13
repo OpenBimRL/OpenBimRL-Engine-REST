@@ -7,9 +7,11 @@ import de.rub.bi.inf.openbimrl.rest.models.CheckRequest
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
 import de.rub.bi.inf.openbimrl.rest.models.CheckSubmission
 import de.rub.bi.inf.openbimrl.rest.models.StatusResponse
+import de.rub.bi.inf.openbimrl.rest.models.ScriptCompileResponse
 import de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionService
 import de.rub.bi.inf.openbimrl.rest.service.CheckResultStore
 import de.rub.bi.inf.openbimrl.rest.service.RuleCheckingService
+import de.rub.bi.inf.openbimrl.rest.service.ScriptCompileService
 import de.rub.bi.inf.openbimrl.rest.service.ScriptTypesService
 import de.rub.bi.inf.openbimrl.rest.service.TemporaryFileService
 import de.rub.bi.inf.openbimrl.utils.InvalidFunctionInputException
@@ -31,6 +33,7 @@ class ApiController @Autowired constructor(
     private val checkResultStore: CheckResultStore,
     private val availableFunctionService: AvailableFunctionService,
     private val scriptTypesService: ScriptTypesService,
+    private val scriptCompileService: ScriptCompileService,
     @Value("\${app.version:dev}") private val appVersionValue: String
 ) {
     private fun appVersion(): String {
@@ -179,6 +182,22 @@ class ApiController @Autowired constructor(
     @GetMapping("/script/types", produces = ["application/json"])
     fun getScriptTypes(): ApiAnswer<List<ScriptTypesService.ScriptTypeDto>> {
         return ApiAnswer(scriptTypesService.listTypes())
+    }
+
+    /**
+     * Compile-only check for Kotlin Code nodes in an uploaded .openbimrl graph.
+     * Used by CreatorTool "Compile graph wiring" when the Engine API is connected.
+     */
+    @PostMapping("/script/compile", consumes = ["multipart/form-data"], produces = ["application/json"])
+    fun compileScripts(@RequestParam("file") file: String): ResponseEntity<ApiAnswer<ScriptCompileResponse?>> {
+        return try {
+            ResponseEntity.status(HttpStatus.OK)
+                .body(ApiAnswer(scriptCompileService.compileGraphXml(file)))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseEntity.status(HttpStatus.OK)
+                .body(ApiAnswer(null, "Error: " + (e.message ?: e::class.java.simpleName)))
+        }
     }
 
     /**

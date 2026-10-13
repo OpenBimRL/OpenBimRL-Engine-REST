@@ -4,6 +4,7 @@ import de.rub.bi.inf.logger.RuleLogger
 import de.rub.bi.inf.model.RuleBase
 import de.rub.bi.inf.nativelib.NativeEngine
 import de.rub.bi.inf.openbimrl.OpenRule
+import de.rub.bi.inf.openbimrl.functions.script.ScriptConsole
 import de.rub.bi.inf.openbimrl.rest.models.CheckResult
 import de.rub.bi.inf.openbimrl.utils.OpenBimRLReader
 import org.springframework.stereotype.Service
@@ -25,6 +26,7 @@ class RuleCheckingService {
 
         // Always clear the singleton RuleBase, even when a check throws —
         // otherwise failed runs leave stale rules that poison later requests.
+        ScriptConsole.clear()
         try {
             OpenBimRLReader(graphFiles)
             val logger = RuleLogger()
@@ -40,10 +42,16 @@ class RuleCheckingService {
             }
 
             return CheckRunResult(
-                CheckResult(logger.getLogs(), logger.getResults(), builder.toString()),
+                CheckResult(
+                    logger.getLogs(),
+                    logger.getResults(),
+                    builder.toString(),
+                    ScriptConsole.drain(),
+                ),
                 visualGlb,
             )
         } finally {
+            ScriptConsole.clear()
             RuleBase.getInstance().resetAllRules()
         }
     }
