@@ -56,6 +56,17 @@ alias(
 )
 
 kt_jvm_test(
+    name = "ai_upstream_policy_test",
+    srcs = ["src/test/kotlin/de/rub/bi/inf/openbimrl/rest/service/AiUpstreamPolicyTest.kt"],
+    test_class = "de.rub.bi.inf.openbimrl.rest.service.AiUpstreamPolicyTest",
+    deps = [
+        ":rest_lib",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+    ],
+)
+
+kt_jvm_test(
     name = "available_function_service_test",
     srcs = ["src/test/kotlin/de/rub/bi/inf/openbimrl/rest/service/AvailableFunctionServiceTest.kt"],
     test_class = "de.rub.bi.inf.openbimrl.rest.service.AvailableFunctionServiceTest",
@@ -81,6 +92,7 @@ kt_jvm_test(
 test_suite(
     name = "rest_tests",
     tests = [
+        ":ai_upstream_policy_test",
         ":available_function_service_test",
         ":rest_integration_test",
     ],

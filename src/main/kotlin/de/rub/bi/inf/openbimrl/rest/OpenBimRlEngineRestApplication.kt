@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.Module
 import com.fasterxml.jackson.databind.module.SimpleModule
 import de.rub.bi.inf.openbimrl.rest.serializers.*
 import de.rub.bi.inf.openbimrl.rest.security.SecurityProperties
+import de.rub.bi.inf.openbimrl.rest.service.AiProxyProperties
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.runApplication
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.Configuration
 
 
 @SpringBootApplication
-@EnableConfigurationProperties(SecurityProperties::class)
+@EnableConfigurationProperties(SecurityProperties::class, AiProxyProperties::class)
 class OpenBimRlEngineRestApplication
 
 fun main(args: Array<String>) {
