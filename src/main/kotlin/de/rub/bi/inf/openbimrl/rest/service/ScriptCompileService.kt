@@ -1,7 +1,7 @@
 package de.rub.bi.inf.openbimrl.rest.service
 
-import de.rub.bi.inf.openbimrl.BIMRuleType
 import de.rub.bi.inf.openbimrl.NodeType
+import de.rub.bi.inf.openbimrl.PrecalculationContext
 import de.rub.bi.inf.openbimrl.functions.script.CustomScriptFunction
 import de.rub.bi.inf.openbimrl.functions.script.KtsScriptEvaluator
 import de.rub.bi.inf.openbimrl.functions.script.ScriptPort
@@ -10,19 +10,15 @@ import de.rub.bi.inf.openbimrl.rest.models.ScriptCompileReport
 import de.rub.bi.inf.openbimrl.rest.models.ScriptCompileResponse
 import org.springframework.stereotype.Service
 import java.io.File
-import javax.xml.bind.JAXBElement
 
 @Service
 class ScriptCompileService {
 
     fun compileGraphFile(graphFile: File): ScriptCompileResponse {
-        val obj = OpenBimRLReader.readFromFile(graphFile.absolutePath)
-        val element = obj as JAXBElement<*>
-        val bimRule = element.value as BIMRuleType
-        val nodes = bimRule.precalculations
-            ?.nodeOrGroupOrEdge
-            .orEmpty()
-            .filterIsInstance<NodeType>()
+        val document = OpenBimRLReader.readFromFile(graphFile.absolutePath)
+        val nodes = document.bimRule.flatMap { rule ->
+            PrecalculationContext.flattenNodes(rule.precalculations)
+        }
         return compileNodes(nodes)
     }
 
