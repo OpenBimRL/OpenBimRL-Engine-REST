@@ -5,7 +5,7 @@
 #   - Engine (+ native) via @openbimrl_engine local_path_override
 #   - IfcOpenShell (pinned) for native runtime libs
 #
-# OpenBimRL schema and BVH are compiled inside Engine's Bazel graph (http_archive).
+# BVH is compiled inside Engine's Bazel graph (http_archive). The JAXB model ships in the Engine sources.
 #
 # Usage in configuration.nix:
 #
