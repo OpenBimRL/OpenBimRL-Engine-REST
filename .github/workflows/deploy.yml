@@ -57,11 +57,14 @@ jobs:
           echo "Waiting for Engine CI output: core:${ENGINE_VERSION}"
           echo "Polling ${pom_url}"
           for i in $(seq 1 "${ENGINE_WAIT_ATTEMPTS}"); do
+            # GitHub Packages returns 302 to the blob URL when the POM exists.
+            # 404 means it is not published yet. Do not follow the redirect: the
+            # next hop drops basic auth and is not a reliable existence check.
             code=$(curl -sS -o /dev/null -w "%{http_code}" \
               -u "${GITHUB_ACTOR}:${GH_TOKEN}" \
               "${pom_url}" || true)
-            if [ "${code}" = "200" ]; then
-              echo "Engine Maven package ${ENGINE_VERSION} is available (attempt ${i})"
+            if [ "${code}" = "200" ] || [ "${code}" = "302" ] || [ "${code}" = "307" ]; then
+              echo "Engine Maven package ${ENGINE_VERSION} is available (HTTP ${code}, attempt ${i})"
               exit 0
             fi
             # Best-effort status from Engine's Maven Package workflow (public API / token).
